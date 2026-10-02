@@ -2,50 +2,68 @@ import React, { useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity, Dimensions } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  useAnimatedProps, 
+  withTiming, 
+  Easing 
+} from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
 import HomeScreen from '../screens/HomeScreen';
 import CommunityScreen from '../screens/CommunityScreen';
-import MapScreen from '../screens/MapScreen';
+import RecordScreen from '../screens/RecordScreen'; 
+import EventsScreen from '../screens/EventsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const TAB_BAR_WIDTH = SCREEN_WIDTH;
-const TAB_WIDTH = TAB_BAR_WIDTH / 4;
+const TAB_WIDTH = TAB_BAR_WIDTH / 5;
 const TAB_BAR_HEIGHT = 85;
 
 const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  Home: 'home',
+  Discover: 'map',
   Community: 'people',
-  Map: 'location-sharp',
+  Record: 'add', 
+  Events: 'calendar',
   Profile: 'person-outline',
 };
 
-// SVG Math: The purple ball has a radius of 28 (56 width).
-// The cutout now has a radius of 33, creating a perfect 5px gap around it.
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+// Statische achtergrond voor eerste render
 const LiquidBackground = () => {
   const center = TAB_BAR_WIDTH + TAB_WIDTH / 2;
+  const r = 33; 
   
+  const topY = 20;
+  const bowlStartY = 30; // Verlaagd vanaf 25 om de hoeken veel ronder te maken
+  const bottomY = 25 + r;
+
+  const shoulderWidth = 26; // Zeer brede "schouder" voor een zachte curve
+  const startX = center - r - shoulderWidth;
+  const endX = center + r + shoulderWidth;
+
   return (
     <Svg width={TAB_BAR_WIDTH * 2} height={TAB_BAR_HEIGHT + 100} style={styles.svgBackground}>
       <Path
         d={`
-          M 0,20 
-          L ${center - 40},20 
-          C ${center - 36},20 ${center - 33},22 ${center - 33},25 
-          C ${center - 33},43.2 ${center - 18.2},58 ${center},58 
-          C ${center + 18.2},58 ${center + 33},43.2 ${center + 33},25 
-          C ${center + 33},22 ${center + 36},20 ${center + 40},20 
-          L ${TAB_BAR_WIDTH * 2},20 
+          M 0,${topY} 
+          L ${startX},${topY} 
+          C ${center - r - 12},${topY} ${center - r},${topY + 2} ${center - r},${bowlStartY} 
+          C ${center - r},${25 + r * 0.552} ${center - (r * 0.552)},${bottomY} ${center},${bottomY} 
+          C ${center + (r * 0.552)},${bottomY} ${center + r},${25 + r * 0.552} ${center + r},${bowlStartY} 
+          C ${center + r},${topY + 2} ${center + r + 12},${topY} ${endX},${topY} 
+          L ${TAB_BAR_WIDTH * 2},${topY} 
           L ${TAB_BAR_WIDTH * 2},${TAB_BAR_HEIGHT + 100} 
           L 0,${TAB_BAR_HEIGHT + 100} 
           Z
         `}
-        fill="#141420"
+        fill="#252C25" 
       />
     </Svg>
   );
@@ -53,9 +71,16 @@ const LiquidBackground = () => {
 
 function LiquidTabBar({ state, navigation }: any) {
   const indicatorPosition = useSharedValue(0);
+  const cutoutRadius = useSharedValue(33);
 
   useEffect(() => {
     indicatorPosition.value = withTiming(-(TAB_BAR_WIDTH - (state.index * TAB_WIDTH)), {
+      duration: 300,
+      easing: Easing.out(Easing.cubic),
+    });
+
+    // Laat de uitsnede iets groeien voor de grote Record knop
+    cutoutRadius.value = withTiming(state.index === 2 ? 37 : 33, {
       duration: 300,
       easing: Easing.out(Easing.cubic),
     });
@@ -65,16 +90,48 @@ function LiquidTabBar({ state, navigation }: any) {
     transform: [{ translateX: indicatorPosition.value }],
   }));
 
+  const animatedPathProps = useAnimatedProps(() => {
+    const r = cutoutRadius.value;
+    const center = TAB_BAR_WIDTH + TAB_WIDTH / 2;
+    
+    // Y-coördinaten
+    const topY = 20;
+    const bowlStartY = 30; // Startpunt van de cirkel is verlaagd voor gladdere hoeken
+    const bottomY = 25 + r;
+
+    // Dynamische schouder-berekening voor extreem zachte hoeken
+    const shoulderWidth = 26; 
+    const startX = center - r - shoulderWidth;
+    const endX = center + r + shoulderWidth;
+
+    const d = `
+      M 0,${topY} 
+      L ${startX},${topY} 
+      C ${center - r - 12},${topY} ${center - r},${topY + 2} ${center - r},${bowlStartY} 
+      C ${center - r},${25 + r * 0.552} ${center - (r * 0.552)},${bottomY} ${center},${bottomY} 
+      C ${center + (r * 0.552)},${bottomY} ${center + r},${25 + r * 0.552} ${center + r},${bowlStartY} 
+      C ${center + r},${topY + 2} ${center + r + 12},${topY} ${endX},${topY} 
+      L ${TAB_BAR_WIDTH * 2},${topY} 
+      L ${TAB_BAR_WIDTH * 2},${TAB_BAR_HEIGHT + 100} 
+      L 0,${TAB_BAR_HEIGHT + 100} 
+      Z
+    `;
+    return { d };
+  });
+
   return (
     <View style={styles.tabBarContainer}>
       <View style={styles.shadowWrapper}>
         <Animated.View style={[styles.svgWrapper, animatedSvgStyle]}>
-          <LiquidBackground />
+          <Svg width={TAB_BAR_WIDTH * 2} height={TAB_BAR_HEIGHT + 100} style={styles.svgBackground}>
+            <AnimatedPath animatedProps={animatedPathProps} fill="#252C25" />
+          </Svg>
         </Animated.View>
 
         <View style={styles.iconsContainer}>
           {state.routes.map((route: any, index: number) => {
             const isFocused = state.index === index;
+            const isRecord = route.name === 'Record'; 
             const iconName = ICONS[route.name];
 
             const handlePress = () => {
@@ -90,8 +147,8 @@ function LiquidTabBar({ state, navigation }: any) {
                 onPress={handlePress} 
                 activeOpacity={1}
               >
-                <AnimatedIcon isActive={isFocused} icon={iconName} />
-                <AnimatedLabel isActive={isFocused} name={route.name} />
+                <AnimatedIcon isActive={isFocused} icon={iconName} isRecord={isRecord} />
+                <AnimatedLabel isActive={isFocused} name={route.name} isRecord={isRecord} />
               </TouchableOpacity>
             );
           })}
@@ -101,29 +158,46 @@ function LiquidTabBar({ state, navigation }: any) {
   );
 }
 
-const AnimatedIcon = ({ isActive, icon }: { isActive: boolean, icon: any }) => {
-  const translateY = useSharedValue(0);
+const AnimatedIcon = ({ isActive, icon, isRecord }: { isActive: boolean, icon: any, isRecord: boolean }) => {
+  const translateY = useSharedValue(isRecord ? -14 : 0);
   
   useEffect(() => {
-    // Moves up exactly to sit in the mathematical center of the cutout (Y=25)
-    translateY.value = withTiming(isActive ? -30 : 0, { 
+    const targetY = isRecord 
+      ? (isActive ? -30 : -14) 
+      : (isActive ? -30 : 0);
+      
+    translateY.value = withTiming(targetY, { 
       duration: 250, 
       easing: Easing.out(Easing.quad) 
     });
-  }, [isActive]);
+  }, [isActive, isRecord]);
   
   const style = useAnimatedStyle(() => ({ 
     transform: [{ translateY: translateY.value }] 
   }));
   
   return (
-    <Animated.View style={[style, isActive && styles.activeIconCircle]}>
-      <Ionicons name={icon} size={24} color={isActive ? '#FFFFFF' : '#8E8E93'} />
+    <Animated.View style={[
+      style, 
+      isActive && !isRecord && styles.activeIconCircle, 
+      isRecord && styles.recordIconCircle 
+    ]}>
+      {isRecord ? (
+        // Custom plus met perfect afgeronde hoeken
+        <View style={{ width: 28, height: 28, justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ position: 'absolute', width: 28, height: 6, backgroundColor: '#101311', borderRadius: 3 }} />
+          <View style={{ position: 'absolute', width: 6, height: 28, backgroundColor: '#101311', borderRadius: 3 }} />
+        </View>
+      ) : (
+        <Ionicons name={icon} size={24} color={isActive ? '#101311' : '#A9B5A0'} />
+      )}
     </Animated.View>
   );
 };
 
-const AnimatedLabel = ({ isActive, name }: { isActive: boolean, name: string }) => {
+const AnimatedLabel = ({ isActive, name, isRecord }: { isActive: boolean, name: string, isRecord: boolean }) => {
+  if (isRecord) return null;
+
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(10);
   
@@ -146,9 +220,10 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Tab.Navigator tabBar={(props) => <LiquidTabBar {...props} />} screenOptions={{ headerShown: false }}>
-        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen name="Discover" component={HomeScreen} />
         <Tab.Screen name="Community" component={CommunityScreen} />
-        <Tab.Screen name="Map" component={MapScreen} />
+        <Tab.Screen name="Record" component={RecordScreen} />
+        <Tab.Screen name="Events" component={EventsScreen} />
         <Tab.Screen name="Profile" component={ProfileScreen} />
       </Tab.Navigator>
     </NavigationContainer>
@@ -168,9 +243,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+    elevation: 15,
   },
   svgWrapper: {
     position: 'absolute',
@@ -199,19 +274,33 @@ const styles = StyleSheet.create({
     width: 56, 
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#7B61FF', 
+    backgroundColor: '#C2F044', 
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#7B61FF',
+    shadowColor: '#C2F044',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 8,
   },
+  recordIconCircle: {
+    width: 64, 
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#C2F044', 
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#C2F044',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 10,
+  },
   navText: {
     fontSize: 10,
-    fontWeight: '300',
-    color: '#FFFFFF',
-    letterSpacing: 0.8,
+    fontFamily: 'Manrope',
+    fontWeight: '700',
+    color: '#F4F6EF',
+    letterSpacing: 0.5,
   },
 });
