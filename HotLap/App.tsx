@@ -5,6 +5,7 @@ import { useFonts } from 'expo-font';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './src/lib/supabase';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native'; // NIEUWE IMPORT
 
 import { Michroma_400Regular } from '@expo-google-fonts/michroma';
 import { Manrope_400Regular, Manrope_700Bold } from '@expo-google-fonts/manrope';
@@ -16,9 +17,24 @@ import { Exo2_400Regular, Exo2_700Bold } from '@expo-google-fonts/exo-2';
 import { ChakraPetch_400Regular, ChakraPetch_700Bold } from '@expo-google-fonts/chakra-petch';
 
 import AppNavigator from './src/navigation/AppNavigator';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from './src/screens/LoginScreen';
+import SetupScreen from './src/screens/SetupScreen';
+import EditProfileScreen from './src/screens/EditProfileScreen';
 
 SplashScreen.preventAutoHideAsync();
+
+// BELANGRIJK: De navigators moeten buiten de hoofdcomponent staan om crashes te voorkomen
+const AuthStack = createNativeStackNavigator();
+
+function AuthNavigator() {
+  return (
+    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+      <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="Setup" component={SetupScreen} />
+    </AuthStack.Navigator>
+  );
+}
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -42,7 +58,6 @@ export default function App() {
 
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN') {
-        // Wacht 2 seconden zodat de Login animatie kan afspelen!
         setTimeout(() => setSession(session), 2000);
       } else {
         setSession(session);
@@ -62,7 +77,14 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      {session && session.user ? <AppNavigator /> : <LoginScreen />}
+      {/* AuthNavigator heeft NavigationContainer nodig, je AppNavigator waarschijnlijk intern al */}
+      {session && session.user ? (
+        <AppNavigator />
+      ) : (
+        <NavigationContainer>
+          <AuthNavigator />
+        </NavigationContainer>
+      )}
       <StatusBar style="light" />
     </SafeAreaProvider>
   );

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity, Dimensions } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { 
   useSharedValue, 
@@ -12,13 +13,16 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
+// Importeer al je schermen
 import HomeScreen from '../screens/HomeScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import RecordScreen from '../screens/RecordScreen'; 
-import EventsScreen from '../screens/EventsScreen';
+import MapScreen from '../screens/MapScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator(); // <-- De nieuwe Stack Navigator!
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const TAB_BAR_WIDTH = SCREEN_WIDTH;
@@ -29,46 +33,13 @@ const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   Discover: 'map',
   Community: 'people',
   Record: 'add', 
-  Events: 'calendar',
-  Profile: 'person-outline',
+  Map: 'location',
+  Profile: 'person',
 };
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-// Statische achtergrond voor eerste render
-const LiquidBackground = () => {
-  const center = TAB_BAR_WIDTH + TAB_WIDTH / 2;
-  const r = 33; 
-  
-  const topY = 20;
-  const bowlStartY = 30; // Verlaagd vanaf 25 om de hoeken veel ronder te maken
-  const bottomY = 25 + r;
-
-  const shoulderWidth = 26; // Zeer brede "schouder" voor een zachte curve
-  const startX = center - r - shoulderWidth;
-  const endX = center + r + shoulderWidth;
-
-  return (
-    <Svg width={TAB_BAR_WIDTH * 2} height={TAB_BAR_HEIGHT + 100} style={styles.svgBackground}>
-      <Path
-        d={`
-          M 0,${topY} 
-          L ${startX},${topY} 
-          C ${center - r - 12},${topY} ${center - r},${topY + 2} ${center - r},${bowlStartY} 
-          C ${center - r},${25 + r * 0.552} ${center - (r * 0.552)},${bottomY} ${center},${bottomY} 
-          C ${center + (r * 0.552)},${bottomY} ${center + r},${25 + r * 0.552} ${center + r},${bowlStartY} 
-          C ${center + r},${topY + 2} ${center + r + 12},${topY} ${endX},${topY} 
-          L ${TAB_BAR_WIDTH * 2},${topY} 
-          L ${TAB_BAR_WIDTH * 2},${TAB_BAR_HEIGHT + 100} 
-          L 0,${TAB_BAR_HEIGHT + 100} 
-          Z
-        `}
-        fill="#252C25" 
-      />
-    </Svg>
-  );
-};
-
+// Liquid Tab Bar Component
 function LiquidTabBar({ state, navigation }: any) {
   const indicatorPosition = useSharedValue(0);
   const cutoutRadius = useSharedValue(33);
@@ -158,6 +129,7 @@ function LiquidTabBar({ state, navigation }: any) {
   );
 }
 
+// Icon Animations
 const AnimatedIcon = ({ isActive, icon, isRecord }: { isActive: boolean, icon: any, isRecord: boolean }) => {
   const translateY = useSharedValue(isRecord ? -14 : 0);
   
@@ -183,7 +155,6 @@ const AnimatedIcon = ({ isActive, icon, isRecord }: { isActive: boolean, icon: a
       isRecord && styles.recordIconCircle 
     ]}>
       {isRecord ? (
-        // Custom plus met perfect afgeronde hoeken
         <View style={{ width: 28, height: 28, justifyContent: 'center', alignItems: 'center' }}>
           <View style={{ position: 'absolute', width: 28, height: 6, backgroundColor: '#101311', borderRadius: 3 }} />
           <View style={{ position: 'absolute', width: 6, height: 28, backgroundColor: '#101311', borderRadius: 3 }} />
@@ -195,6 +166,7 @@ const AnimatedIcon = ({ isActive, icon, isRecord }: { isActive: boolean, icon: a
   );
 };
 
+// Label Animations
 const AnimatedLabel = ({ isActive, name, isRecord }: { isActive: boolean, name: string, isRecord: boolean }) => {
   if (isRecord) return null;
 
@@ -216,20 +188,37 @@ const AnimatedLabel = ({ isActive, name, isRecord }: { isActive: boolean, name: 
   return <Animated.Text style={[styles.navText, style]}>{name}</Animated.Text>;
 };
 
+// --- NAVIGATORS ---
+
+// 1. De Tab Navigator (Jouw menu onderaan)
+function TabNavigator() {
+  return (
+    <Tab.Navigator tabBar={(props) => <LiquidTabBar {...props} />} screenOptions={{ headerShown: false }}>
+      <Tab.Screen name="Discover" component={HomeScreen} />
+      <Tab.Screen name="Community" component={CommunityScreen} />
+      <Tab.Screen name="Record" component={RecordScreen} />
+      <Tab.Screen name="Map" component={MapScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
+    </Tab.Navigator>
+  );
+}
+
+// 2. De Hoofd Stack Navigator (Combinaert tabs met losse schermen zoals Edit Profile)
 export default function AppNavigator() {
   return (
     <NavigationContainer>
-      <Tab.Navigator tabBar={(props) => <LiquidTabBar {...props} />} screenOptions={{ headerShown: false }}>
-        <Tab.Screen name="Discover" component={HomeScreen} />
-        <Tab.Screen name="Community" component={CommunityScreen} />
-        <Tab.Screen name="Record" component={RecordScreen} />
-        <Tab.Screen name="Events" component={EventsScreen} />
-        <Tab.Screen name="Profile" component={ProfileScreen} />
-      </Tab.Navigator>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {/* MainTabs laadt je hele bottom menu in */}
+        <Stack.Screen name="MainTabs" component={TabNavigator} />
+        
+        {/* Dit is het nieuwe scherm dat OVER je tabs heen schuift */}
+        <Stack.Screen name="EditProfileScreen" component={EditProfileScreen} />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
 
+// --- STYLES ---
 const styles = StyleSheet.create({
   tabBarContainer: {
     position: 'absolute',

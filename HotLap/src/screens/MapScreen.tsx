@@ -4,7 +4,7 @@ import { View, Text, StyleSheet } from 'react-native';
 export default function EventsScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Events</Text>
+      <Text style={styles.title}>Map</Text>
       <Text style={styles.text}>Car meets and road trips coming soon.</Text>
     </View>
   );
