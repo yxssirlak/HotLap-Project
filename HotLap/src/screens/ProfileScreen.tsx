@@ -17,11 +17,42 @@ import Animated, {
   useAnimatedStyle, 
   withTiming, 
   Easing,
-  FadeInDown
+  FadeInDown,
+  withRepeat,
+  withSequence
 } from 'react-native-reanimated';
 import EditProfileScreen from '../screens/EditProfileScreen';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const SkeletonItem = ({ width, height, borderRadius = 4, style }: any) => {
+  const opacity = useSharedValue(0.3);
+
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(0.7, { duration: 800 }),
+        withTiming(0.3, { duration: 800 })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        { width, height, borderRadius, backgroundColor: '#252C25' },
+        animatedStyle,
+        style,
+      ]}
+    />
+  );
+};
 
 export default function ProfileScreen({ navigation }: any) {
   const insets = useSafeAreaInsets();
@@ -103,10 +134,53 @@ export default function ProfileScreen({ navigation }: any) {
     };
   });
 
-  if (loading) {
+    if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#C2F044" />
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.topBar}>
+          <SkeletonItem width={120} height={20} borderRadius={10} />
+          <SkeletonItem width={24} height={24} borderRadius={12} />
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+          <View style={styles.profileSection}>
+            <SkeletonItem width={100} height={100} borderRadius={50} style={{ marginBottom: 16 }} />
+            <SkeletonItem width={200} height={28} borderRadius={14} style={{ marginBottom: 12 }} />
+            <SkeletonItem width={280} height={16} borderRadius={8} style={{ marginBottom: 8 }} />
+            <SkeletonItem width={240} height={16} borderRadius={8} style={{ marginBottom: 20 }} />
+            <SkeletonItem width={140} height={40} borderRadius={25} />
+          </View>
+
+          <View style={styles.statsRow}>
+            <View style={styles.statBlock}>
+              <SkeletonItem width={40} height={24} borderRadius={12} style={{ marginBottom: 8 }} />
+              <SkeletonItem width={50} height={12} borderRadius={6} />
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statBlock}>
+              <SkeletonItem width={40} height={24} borderRadius={12} style={{ marginBottom: 8 }} />
+              <SkeletonItem width={60} height={12} borderRadius={6} />
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statBlock}>
+              <SkeletonItem width={40} height={24} borderRadius={12} style={{ marginBottom: 8 }} />
+              <SkeletonItem width={70} height={12} borderRadius={6} />
+            </View>
+          </View>
+
+          <View style={[styles.tabsContainer, { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 15 }]}>
+            <SkeletonItem width={80} height={16} borderRadius={8} />
+            <SkeletonItem width={80} height={16} borderRadius={8} />
+          </View>
+
+          <View style={styles.tabContent}>
+            <View style={styles.garageHeader}>
+              <SkeletonItem width={120} height={16} borderRadius={8} />
+              <SkeletonItem width={24} height={24} borderRadius={12} />
+            </View>
+            <SkeletonItem width={'100%'} height={220} borderRadius={20} />
+          </View>
+        </ScrollView>
       </View>
     );
   }

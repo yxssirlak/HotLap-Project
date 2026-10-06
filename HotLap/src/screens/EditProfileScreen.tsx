@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { 
   StyleSheet, View, Text, TextInput, Pressable, Image, KeyboardAvoidingView, Platform, ActivityIndicator, Alert
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,19 +12,39 @@ export default function EditProfileScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
   const { profile } = route.params;
 
-  const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
   const [bio, setBio] = useState(profile?.bio || '');
-  // Hier slaan we later de geselecteerde foto in op als je expo-image-picker toevoegt
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || null); 
 
-  async function handleSave() {
+  async function pickImage() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to upload a profile picture!');
+      return;
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setAvatarUrl(result.assets[0].uri);
+    }
+  }
+
+    async function handleSave() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
+      // Opmerking: Voor een werkende productie-app moet de lokale avatarUrl (file uri) eerst 
+      // naar een Supabase Storage bucket geüpload worden, en moet je die public URL opslaan.
       const { error } = await supabase
         .from('profiles')
-        .update({ bio: bio }) // Hier voeg je later avatar_url toe zodra de upload logica er is
+        .update({ bio: bio, avatar_url: avatarUrl }) 
         .eq('id', user.id);
 
       if (error) {
@@ -54,9 +75,9 @@ export default function EditProfileScreen({ route, navigation }: any) {
         keyboardShouldPersistTaps="handled"
       >
         
-        {/* PROFILE PICTURE EDITOR */}
+                {/* PROFILE PICTURE EDITOR */}
         <Animated.View entering={FadeInDown.duration(500).delay(100)} style={styles.avatarSection}>
-          <View style={styles.avatarWrapper}>
+          <Pressable style={styles.avatarWrapper} onPress={pickImage}>
             {avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
             ) : (
@@ -66,10 +87,10 @@ export default function EditProfileScreen({ route, navigation }: any) {
             )}
             
             {/* Camera Overlay Knop */}
-            <Pressable style={styles.cameraButton} onPress={() => Alert.alert("Photo picker", "Here we will open the camera roll!")}>
+            <View style={styles.cameraButton}>
               <Ionicons name="camera" size={20} color="#101311" />
-            </Pressable>
-          </View>
+            </View>
+          </Pressable>
           <Text style={styles.changePhotoText}>Tap to change photo</Text>
         </Animated.View>
 
