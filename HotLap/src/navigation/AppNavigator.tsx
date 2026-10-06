@@ -20,9 +20,10 @@ import RecordScreen from '../screens/RecordScreen';
 import MapScreen from '../screens/MapScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
+import { RootStackParamList } from './types';
 
 const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator(); // <-- De nieuwe Stack Navigator!
+const Stack = createNativeStackNavigator<RootStackParamList>(); // <-- De nieuwe Stack Navigator!
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const TAB_BAR_WIDTH = SCREEN_WIDTH;

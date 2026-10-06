@@ -5,7 +5,11 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import LiveTelemetryGForce from '../components/LiveTelemetryGForce';
 import { supabase } from '../lib/supabase';
 
-export default function HomeScreen() {
+type HomeScreenProps = {
+  navigation: { navigate: (screen: 'Map') => void };
+};
+
+export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [activeTab, setActiveTab] = useState<'created' | 'explore'>('created');
 
   const mySegments = [
@@ -78,7 +82,11 @@ export default function HomeScreen() {
           <LiveTelemetryGForce />
         </View>
 
-        <TouchableOpacity style={styles.createActionBtn} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.createActionBtn}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('Map')}
+        >
           <View style={styles.createActionContent}>
             <Ionicons name="add-circle" size={28} color="#101311" />
             <Text style={styles.createActionText}>Record a Drive</Text>
