@@ -11,7 +11,8 @@ import {
   Text,
   View,
 } from 'react-native';
-import MapView, { MapType, Marker, Polyline, Region } from 'react-native-maps';
+import type MapViewType from 'react-native-maps';
+import type { MapType, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,32 +35,32 @@ const DEFAULT_REGION: Region = {
 };
 
 const DARK_MAP_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#151a16' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#b0bcad' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#151a16' }] },
-  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#344037' }] },
-  { featureType: 'administrative', elementType: 'labels.text.fill', stylers: [{ color: '#c1cbb8' }] },
-  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#191f1a' }] },
-  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#19241c' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#202820' }] },
-  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#9aaa94' }] },
+  { elementType: 'geometry', stylers: [{ color: '#0a0e0c' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#a9b5a0' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#0a0e0c' }] },
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#1a201a' }] },
+  { featureType: 'administrative', elementType: 'labels.text.fill', stylers: [{ color: '#8f9a87' }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#0f1410' }] },
+  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#101311' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#151a16' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#7a8572' }] },
   { featureType: 'poi.attraction', stylers: [{ visibility: 'off' }] },
   { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
   { featureType: 'poi.medical', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#1d3023' }] },
-  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#90b18e' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#333b34' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#111612' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#a6b1a4' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#505b43' }] },
-  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#272e25' }] },
-  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#e0e8d6' }] },
-  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#414b40' }] },
-  { featureType: 'road.local', elementType: 'geometry', stylers: [{ color: '#2b342e' }] },
-  { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#879486' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#141813' }] },
+  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#7d8975' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1a201a' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#0a0e0c' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#8f9a87' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#252c25' }] },
+  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#101311' }] },
+  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#b8c4ad' }] },
+  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#1d2319' }] },
+  { featureType: 'road.local', elementType: 'geometry', stylers: [{ color: '#151a16' }] },
+  { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#7a8572' }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#102127' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#83a0a2' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0c1115' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#687b76' }] },
 ];
 
 function distanceBetweenMeters(a: TrackPoint, b: TrackPoint) {
@@ -92,7 +93,7 @@ function formatDistance(meters: number) {
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<MapViewType>(null);
   const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
   const pointsRef = useRef<TrackPoint[]>([]);
   const startedAtRef = useRef<number | null>(null);
@@ -189,7 +190,7 @@ export default function MapScreen() {
       longitude: point.longitude,
       latitudeDelta: 0.007,
       longitudeDelta: 0.007,
-    }, animated ? 500 : 0);
+    }, animated ? 800 : 0);
   }
 
   async function requestLocationPermission() {
@@ -251,21 +252,27 @@ export default function MapScreen() {
     };
 
     const previous = pointsRef.current[pointsRef.current.length - 1];
+    let shouldAddToTrack = true;
     if (previous) {
       const segmentMeters = distanceBetweenMeters(previous, next);
       const elapsedMs = next.timestamp - previous.timestamp;
-      const minimumMovement = Math.max(3, Math.min(10, ((previous.accuracy || 0) + accuracy) * 0.35));
-      if (segmentMeters < minimumMovement) return;
       if (elapsedMs <= 0) return;
       const speedMetersPerSecond = segmentMeters / (elapsedMs / 1000);
-      if (speedMetersPerSecond < 0.5 || speedMetersPerSecond > 120) return;
-      setDistanceMeters((distance) => distance + segmentMeters);
+      if (speedMetersPerSecond > 90) return;
+
+      const minimumMovement = Math.max(1, Math.min(2.5, accuracy * 0.15));
+      shouldAddToTrack = segmentMeters >= minimumMovement;
+      if (shouldAddToTrack && speedMetersPerSecond >= 0.5) {
+        setDistanceMeters((distance) => distance + segmentMeters);
+      }
     }
+
+    setCurrentLocation(next);
+    centerOn(next);
+    if (!shouldAddToTrack) return;
 
     pointsRef.current = [...pointsRef.current, next];
     setPoints(pointsRef.current);
-    setCurrentLocation(next);
-    centerOn(next);
   }
 
   async function startWatcher() {
@@ -273,8 +280,8 @@ export default function MapScreen() {
     subscriptionRef.current = await Location.watchPositionAsync(
       {
         accuracy: Location.Accuracy.BestForNavigation,
-        distanceInterval: 2,
-        timeInterval: 1000,
+        distanceInterval: 1,
+        timeInterval: 500,
         mayShowUserSettingsDialog: true,
       },
       acceptLocation,
@@ -450,6 +457,8 @@ export default function MapScreen() {
       </View>
     );
   }
+
+  const { default: MapView, Marker, Polyline } = require('react-native-maps') as typeof import('react-native-maps');
 
   return (
     <View style={styles.container}>
