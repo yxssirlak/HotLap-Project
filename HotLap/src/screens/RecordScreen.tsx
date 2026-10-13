@@ -47,9 +47,18 @@ export default function RecordScreen({ navigation }: RecordScreenProps) {
           onPress={() => navigation.navigate('Map')}
           accessibilityRole="button"
         >
-          <Ionicons name="radio-button-on" size={20} color="#101311" />
-          <Text style={styles.startButtonText}>OPEN LIVE DRIVE MAP</Text>
+          <Ionicons name="car-sport" size={19} color="#101311" />
+          <Text style={styles.startButtonText}>RECORD DRIVE</Text>
           <Ionicons name="arrow-forward" size={17} color="#101311" />
+        </Pressable>
+        <Pressable
+          style={styles.sprintButton}
+          onPress={() => navigation.navigate('Sprint')}
+          accessibilityRole="button"
+        >
+          <Ionicons name="speedometer-outline" size={19} color="#C2F044" />
+          <Text style={styles.sprintButtonText}>RECORD SPRINT</Text>
+          <Ionicons name="arrow-forward" size={17} color="#C2F044" />
         </Pressable>
         <Text style={styles.helperText}>Location is requested only when you center the map or start a drive.</Text>
       </View>
@@ -103,5 +112,7 @@ const styles = StyleSheet.create({
   safetyText: { fontFamily: 'Manrope', fontSize: 9, color: '#879181', lineHeight: 14, textAlign: 'center', marginBottom: 12 },
   startButton: { height: 54, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 9, borderRadius: 14, backgroundColor: '#C2F044' },
   startButtonText: { fontFamily: 'Manrope-Bold', fontSize: 11, color: '#101311', letterSpacing: 1 },
+  sprintButton: { height: 50, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 9, borderRadius: 14, backgroundColor: '#1A201A', borderWidth: 1, borderColor: '#384435', marginTop: 9 },
+  sprintButtonText: { fontFamily: 'Manrope-Bold', fontSize: 11, color: '#F4F6EF', letterSpacing: 1 },
   helperText: { fontFamily: 'Manrope', fontSize: 9, color: '#687263', textAlign: 'center', marginTop: 9 },
 });

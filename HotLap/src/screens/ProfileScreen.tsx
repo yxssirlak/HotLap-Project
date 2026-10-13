@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { supabase } from '../lib/supabase';
+import { formatTravelDistance, getDistanceUnit } from '../utils/units';
 
 type Profile = {
   id?: string;
@@ -49,6 +50,7 @@ type ProfileScreenProps = {
 };
 
 const ACCENT = '#C2F044';
+const DISTANCE_UNIT = getDistanceUnit();
 
 function formatDate(value?: string | null) {
   if (!value) return 'Recent drive';
@@ -69,6 +71,8 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   const [followingCount, setFollowingCount] = useState(0);
   const [driveCount, setDriveCount] = useState(0);
   const [activeTab, setActiveTab] = useState<'garage' | 'activity'>('garage');
+  const isGarageTab = activeTab === 'garage';
+  const isActivityTab = activeTab === 'activity';
 
   const fetchProfileData = useCallback(async (showLoader = true) => {
     if (showLoader) setLoading(true);
@@ -289,17 +293,17 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         </Animated.View>
 
         <View style={styles.tabsContainer}>
-          <Pressable style={[styles.tabButton, activeTab === 'garage' && styles.activeTab]} onPress={() => setActiveTab('garage')}>
-            <Ionicons name="car-sport-outline" size={17} color={activeTab === 'garage' ? ACCENT : '#879181'} />
-            <Text style={[styles.tabText, activeTab === 'garage' && styles.activeTabText]}>MY GARAGE</Text>
+          <Pressable style={[styles.tabButton, isGarageTab && styles.activeTab]} onPress={() => setActiveTab('garage')}>
+            <Ionicons name="car-sport-outline" size={17} color={isGarageTab ? ACCENT : '#879181'} />
+            <Text style={[styles.tabText, isGarageTab && styles.activeTabText]}>MY GARAGE</Text>
           </Pressable>
-          <Pressable style={[styles.tabButton, activeTab === 'activity' && styles.activeTab]} onPress={() => setActiveTab('activity')}>
-            <Ionicons name="time-outline" size={17} color={activeTab === 'activity' ? ACCENT : '#879181'} />
-            <Text style={[styles.tabText, activeTab === 'activity' && styles.activeTabText]}>DRIVE LOG</Text>
+          <Pressable style={[styles.tabButton, isActivityTab && styles.activeTab]} onPress={() => setActiveTab('activity')}>
+            <Ionicons name="time-outline" size={17} color={isActivityTab ? ACCENT : '#879181'} />
+            <Text style={[styles.tabText, isActivityTab && styles.activeTabText]}>DRIVE LOG</Text>
           </Pressable>
         </View>
 
-        {activeTab === 'garage' ? (
+        {isGarageTab ? (
           <View style={styles.section}>
             <View style={styles.sectionHeading}>
               <View>
@@ -363,6 +367,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
             {drives.length ? drives.map((drive, index) => {
               const driveName = drive.title || drive.name || drive.route_name || `Drive ${driveCount - index}`;
               const distance = drive.distance_km ?? drive.distance;
+              const hasDistance = typeof distance === 'number';
               return (
                 <View key={drive.id ?? `${driveName}-${index}`} style={styles.driveCard}>
                   <View style={styles.driveIcon}><Ionicons name="navigate-outline" size={19} color={ACCENT} /></View>
@@ -370,8 +375,8 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
                     <Text style={styles.driveName} numberOfLines={1}>{driveName}</Text>
                     <Text style={styles.driveDate}>{formatDate(drive.created_at)}</Text>
                   </View>
-                  {typeof distance === 'number' && (
-                    <Text style={styles.driveDistance}>{distance.toFixed(1)} km</Text>
+                  {hasDistance && (
+                    <Text style={styles.driveDistance}>{formatTravelDistance(distance * 1000, DISTANCE_UNIT, 1)}</Text>
                   )}
                 </View>
               );

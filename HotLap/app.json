@@ -1,12 +1,13 @@
 {
   "expo": {
     "name": "HotLap",
-    "slug": "HotLap",
+    "slug": "hotlap",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
+      "bundleIdentifier": "com.yassir.hotlap",
       "supportsTablet": true
     },
     "android": {
@@ -16,7 +17,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.yassir.hotlap"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -24,6 +26,7 @@
     "plugins": [
       "expo-font",
       "expo-splash-screen",
+      "expo-localization",
       [
         "expo-image-picker",
         {
@@ -37,6 +40,13 @@
           "locationWhenInUsePermission": "HotLap uses your location while you use the app to show your position and record drives."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "googleMapsConfigured": false,
+      "eas": {
+        "projectId": "4c5313e2-8978-4ced-ac52-851f823f9eae"
+      }
+    },
+    "owner": "yxssir"
   }
 }

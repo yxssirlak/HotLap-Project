@@ -12,12 +12,15 @@ import Animated, {
   Easing 
 } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
+import { BlurView } from 'expo-blur';
 
 // Importeer al je schermen
 import HomeScreen from '../screens/HomeScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import RecordScreen from '../screens/RecordScreen'; 
 import MapScreen from '../screens/MapScreen';
+import SprintScreen from '../screens/SprintScreen';
+import ShareActivityScreen from '../screens/ShareActivityScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import { RootStackParamList } from './types';
@@ -29,6 +32,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TAB_BAR_WIDTH = SCREEN_WIDTH;
 const TAB_WIDTH = TAB_BAR_WIDTH / 5;
 const TAB_BAR_HEIGHT = 85;
+const RECORD_TAB_NAME = 'Record';
 
 const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   Discover: 'map',
@@ -94,16 +98,17 @@ function LiquidTabBar({ state, navigation }: any) {
   return (
     <View style={styles.tabBarContainer}>
       <View style={styles.shadowWrapper}>
-        <Animated.View style={[styles.svgWrapper, animatedSvgStyle]}>
-          <Svg width={TAB_BAR_WIDTH * 2} height={TAB_BAR_HEIGHT + 100} style={styles.svgBackground}>
-            <AnimatedPath animatedProps={animatedPathProps} fill="#252C25" />
+      <BlurView intensity={45} tint="dark" blurMethod="dimezisBlurView" style={styles.tabBarBlur} />
+      <Animated.View style={[styles.svgWrapper, animatedSvgStyle]}>
+        <Svg width={TAB_BAR_WIDTH * 2} height={TAB_BAR_HEIGHT + 100} style={styles.svgBackground}>
+          <AnimatedPath animatedProps={animatedPathProps} fill="rgba(24,30,24,0.76)" />
           </Svg>
         </Animated.View>
 
         <View style={styles.iconsContainer}>
           {state.routes.map((route: any, index: number) => {
             const isFocused = state.index === index;
-            const isRecord = route.name === 'Record'; 
+            const isRecord = route.name === RECORD_TAB_NAME;
             const iconName = ICONS[route.name];
 
             const handlePress = () => {
@@ -211,6 +216,8 @@ export default function AppNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {/* MainTabs laadt je hele bottom menu in */}
         <Stack.Screen name="MainTabs" component={TabNavigator} />
+        <Stack.Screen name="Sprint" component={SprintScreen} />
+        <Stack.Screen name="ShareActivity" component={ShareActivityScreen} />
         
         {/* Dit is het nieuwe scherm dat OVER je tabs heen schuift */}
         <Stack.Screen name="EditProfileScreen" component={EditProfileScreen} />
@@ -236,6 +243,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 15,
     elevation: 15,
+  },
+  tabBarBlur: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: TAB_BAR_HEIGHT,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(244,246,239,0.12)',
   },
   svgWrapper: {
     position: 'absolute',

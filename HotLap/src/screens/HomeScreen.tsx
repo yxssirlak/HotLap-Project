@@ -4,6 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import LiveTelemetryGForce from '../components/LiveTelemetryGForce';
 import { supabase } from '../lib/supabase';
+import { formatTravelDistance, getDistanceUnit } from '../utils/units';
+
+const DISTANCE_UNIT = getDistanceUnit();
 
 type HomeScreenProps = {
   navigation: { navigate: (screen: 'Map') => void };
@@ -13,13 +16,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const [activeTab, setActiveTab] = useState<'created' | 'explore'>('created');
 
   const mySegments = [
-    { id: 1, name: 'Coastal Escape', location: 'Big Sur, CA', bestTime: '1:45.20', distance: '3.2', unit: 'km', color: '#1689EF' },
-    { id: 2, name: 'Mountain Pass Rally', location: 'Alps, CH', bestTime: '4:12.05', distance: '8.5', unit: 'km', color: '#9062DB' },
+    { id: 1, name: 'Coastal Escape', location: 'Big Sur, CA', bestTime: '1:45.20', distance: '3.2', color: '#1689EF' },
+    { id: 2, name: 'Mountain Pass Rally', location: 'Alps, CH', bestTime: '4:12.05', distance: '8.5', color: '#9062DB' },
   ];
 
   const exploreSegments = [
-    { id: 1, name: 'Forest Run', location: 'Black Forest, DE', bestTime: '0:35.42', distance: '1.2', unit: 'km', color: '#268852' },
-    { id: 2, name: 'Outback Adventure', location: 'Alice Springs, AU', bestTime: '7:55.89', distance: '20.8', unit: 'km', color: '#E77938' },
+    { id: 1, name: 'Forest Run', location: 'Black Forest, DE', bestTime: '0:35.42', distance: '1.2', color: '#268852' },
+    { id: 2, name: 'Outback Adventure', location: 'Alice Springs, AU', bestTime: '7:55.89', distance: '20.8', color: '#E77938' },
   ];
 
   const renderSegments = () => {
@@ -33,7 +36,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       );
     }
 
-    return data.map((item) => (
+    return data.map((item) => {
+      const [distanceValue, distanceUnit] = formatTravelDistance(
+        Number(item.distance) * 1000,
+        DISTANCE_UNIT,
+        1,
+      ).split(' ');
+      return (
       <TouchableOpacity key={`${activeTab}-${item.id}`} style={styles.card} activeOpacity={0.8}>
         <View style={[styles.mapPlaceholder, { borderColor: item.color }]}>
            <MaterialCommunityIcons name="map-marker-path" size={28} color={item.color} />
@@ -48,13 +57,14 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         </View>
         <View style={styles.cardRight}>
           <View style={styles.distanceContainer}>
-            <Text style={styles.distanceValue}>{item.distance}</Text>
-            <Text style={styles.distanceUnit}>{item.unit}</Text>
+            <Text style={styles.distanceValue}>{distanceValue}</Text>
+            <Text style={styles.distanceUnit}>{distanceUnit}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#A9B5A0" />
         </View>
       </TouchableOpacity>
-    ));
+      );
+    });
   };
 
   return (

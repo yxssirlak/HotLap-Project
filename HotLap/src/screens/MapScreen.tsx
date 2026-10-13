@@ -11,12 +11,18 @@ import {
   Text,
   View,
 } from 'react-native';
-import MapView, { MapType, Marker, Polyline, Region } from 'react-native-maps';
+import MapView, { MapType, Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
+import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../lib/supabase';
+import { formatSpeed, formatTravelDistance, getDistanceUnit } from '../utils/units';
+import { RootStackParamList } from '../navigation/types';
 
 type TrackPoint = {
   latitude: number;
@@ -26,6 +32,8 @@ type TrackPoint = {
 };
 
 const HOTLAP_LIME = '#C2F044';
+const USE_GOOGLE_MAPS = Platform.OS === 'android' ||
+  Boolean(Constants.expoConfig?.extra?.googleMapsConfigured);
 const DEFAULT_REGION: Region = {
   latitude: 52.0907,
   longitude: 5.1214,
@@ -34,32 +42,43 @@ const DEFAULT_REGION: Region = {
 };
 
 const DARK_MAP_STYLE = [
-  { elementType: 'geometry', stylers: [{ color: '#151a16' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#b0bcad' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#151a16' }] },
-  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#344037' }] },
-  { featureType: 'administrative', elementType: 'labels.text.fill', stylers: [{ color: '#c1cbb8' }] },
-  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#191f1a' }] },
-  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#19241c' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#202820' }] },
-  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#9aaa94' }] },
-  { featureType: 'poi.attraction', stylers: [{ visibility: 'off' }] },
+  { elementType: 'geometry', stylers: [{ color: '#000000' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#D4DAD5' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#000000' }] },
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#3A403B' }] },
+  { featureType: 'administrative', elementType: 'labels.text.fill', stylers: [{ color: '#D0D7D1' }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#000000' }] },
+  { featureType: 'landscape.man_made', elementType: 'geometry', stylers: [{ color: '#030504' }] },
+  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#183D22' }] },
+  { featureType: 'landscape.natural.landcover', elementType: 'geometry', stylers: [{ color: '#204A28' }] },
+  { featureType: 'landscape.natural.terrain', elementType: 'geometry', stylers: [{ color: '#183D22' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#142B19' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#C6D9C7' }] },
+  { featureType: 'poi.attraction', elementType: 'all', stylers: [{ visibility: 'off' }] },
   { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi.medical', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#1d3023' }] },
-  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#90b18e' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#333b34' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#111612' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#a6b1a4' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#505b43' }] },
-  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#272e25' }] },
-  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#e0e8d6' }] },
-  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#414b40' }] },
-  { featureType: 'road.local', elementType: 'geometry', stylers: [{ color: '#2b342e' }] },
-  { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#879486' }] },
+  { featureType: 'poi.medical', elementType: 'all', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#286237' }] },
+  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#C2E8C0' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#242925' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#000000' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#BCC6BE' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#424A44' }] },
+  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#000000' }] },
+  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#F0F4F0' }] },
+  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#303631' }] },
+  { featureType: 'road.local', elementType: 'geometry', stylers: [{ color: '#1B201C' }] },
+  { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#A7B2A9' }] },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#102127' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#83a0a2' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#071014' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#A5BBC0' }] },
+  { featureType: 'building', elementType: 'geometry', stylers: [{ color: '#F0F3F1' }] },
+  { featureType: 'building', elementType: 'geometry.stroke', stylers: [{ color: '#B8C2BC' }] },
+];
+const DARK_MAP_STYLE_WITH_PLACES = [
+  ...DARK_MAP_STYLE,
+  { featureType: 'poi.business', elementType: 'all', stylers: [{ visibility: 'on' }] },
+  { featureType: 'poi.business', elementType: 'labels.icon', stylers: [{ color: HOTLAP_LIME }] },
+  { featureType: 'poi.business', elementType: 'labels.text.fill', stylers: [{ color: '#D8E1D4' }] },
 ];
 
 function distanceBetweenMeters(a: TrackPoint, b: TrackPoint) {
@@ -85,12 +104,9 @@ function formatDuration(seconds: number) {
     : `${twoDigits(minutes)}:${twoDigits(remainingSeconds)}`;
 }
 
-function formatDistance(meters: number) {
-  return meters >= 1000 ? (meters / 1000).toFixed(2) : Math.round(meters).toString();
-}
-
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isFocused = useIsFocused();
   const mapRef = useRef<MapView>(null);
   const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
@@ -112,6 +128,8 @@ export default function MapScreen() {
   const [savingDrive, setSavingDrive] = useState(false);
   const [mapType, setMapType] = useState<MapType>('standard');
   const [showTraffic, setShowTraffic] = useState(false);
+  const [showPlaces, setShowPlaces] = useState(true);
+  const distanceUnit = getDistanceUnit();
 
   useEffect(() => {
     if (!active || paused || !startedAt) return undefined;
@@ -405,7 +423,7 @@ export default function MapScreen() {
     const saveError = await saveDrive();
     Alert.alert(
       'Drive complete',
-      `${formatDistance(distanceMeters)} ${distanceMeters >= 1000 ? 'km' : 'm'} · ${formatDuration(elapsedSeconds)} · ${pointsRef.current.length} GPS fixes${saveError ? `\n\nCould not save to your drive log: ${saveError}` : '\n\nSaved to your private HotLap drive log.'}`,
+      `${formatTravelDistance(distanceMeters, distanceUnit)} · ${formatDuration(elapsedSeconds)} · ${pointsRef.current.length} GPS fixes${saveError ? `\n\nCould not save to your drive log: ${saveError}` : '\n\nSaved to your private HotLap drive log.'}`,
       [
         { text: 'Close', style: 'cancel' },
         ...(saveError ? [{ text: 'Retry save', onPress: () => void retrySaveDrive() }] : []),
@@ -422,15 +440,34 @@ export default function MapScreen() {
   async function shareDrive() {
     try {
       await Share.share({
-        message: `HotLap drive: ${formatDistance(distanceMeters)} ${distanceMeters >= 1000 ? 'km' : 'm'} in ${formatDuration(elapsedSeconds)}. Tracked with ${pointsRef.current.length} accurate GPS fixes.`,
+        message: `HotLap drive: ${formatTravelDistance(distanceMeters, distanceUnit)} in ${formatDuration(elapsedSeconds)}. Tracked with ${pointsRef.current.length} accurate GPS fixes.`,
       });
     } catch (error) {
       Alert.alert('Could not share drive', error instanceof Error ? error.message : 'Please try again.');
     }
   }
 
+  function shareDriveToCommunity() {
+    const track = pointsRef.current.map(({ latitude, longitude }) => ({ latitude, longitude }));
+    const firstPoint = track[0];
+    navigation.navigate('ShareActivity', {
+      activity: {
+        type: 'drive',
+        vehicle: '',
+        durationSeconds: elapsedSeconds,
+        distanceMeters,
+        averageSpeedKmh,
+        track,
+        ...(firstPoint ? {
+          startLatitude: firstPoint.latitude,
+          startLongitude: firstPoint.longitude,
+        } : {}),
+      },
+    });
+  }
+
   const lineCoordinates = points.map(({ latitude, longitude }) => ({ latitude, longitude }));
-  const averageSpeed = elapsedSeconds > 0 ? (distanceMeters / elapsedSeconds) * 3.6 : 0;
+  const averageSpeedKmh = elapsedSeconds > 0 ? (distanceMeters / elapsedSeconds) * 3.6 : 0;
   const accuracyLabel = gpsAccuracy == null
     ? 'GPS SEARCHING'
     : gpsAccuracy > 25
@@ -456,12 +493,14 @@ export default function MapScreen() {
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
+        provider={USE_GOOGLE_MAPS ? PROVIDER_GOOGLE : undefined}
         initialRegion={DEFAULT_REGION}
         mapType={mapType}
-        customMapStyle={mapType === 'standard' ? DARK_MAP_STYLE : undefined}
+        customMapStyle={mapType === 'standard' ? (showPlaces ? DARK_MAP_STYLE_WITH_PLACES : DARK_MAP_STYLE) : undefined}
         userInterfaceStyle="dark"
         showsUserLocation={false}
         showsMyLocationButton={false}
+        showsPointsOfInterests={showPlaces}
         showsCompass={false}
         showsScale
         showsTraffic={showTraffic}
@@ -493,7 +532,7 @@ export default function MapScreen() {
       </MapView>
 
       <View pointerEvents="box-none" style={[styles.overlay, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.header}>
+        <BlurView intensity={55} tint="dark" blurMethod="dimezisBlurView" style={styles.header}>
           <View style={styles.brandLockup}>
             <View style={styles.brandMark}><Ionicons name="navigate" size={17} color="#101311" /></View>
             <View>
@@ -507,10 +546,10 @@ export default function MapScreen() {
               {active ? (paused ? 'PAUSED' : 'LIVE DRIVE') : 'MAP'}
             </Text>
           </View>
-        </View>
+        </BlurView>
 
         <View style={styles.mapToolsRow}>
-          <View style={styles.layerSwitch}>
+          <BlurView intensity={48} tint="dark" blurMethod="dimezisBlurView" style={styles.layerSwitch}>
             <Pressable
               style={[styles.layerButton, mapType === 'standard' && styles.layerButtonActive]}
               onPress={() => setMapType('standard')}
@@ -529,30 +568,45 @@ export default function MapScreen() {
               <Ionicons name="globe-outline" size={14} color={mapType === 'satellite' ? HOTLAP_LIME : '#A9B5A0'} />
               <Text style={[styles.layerText, mapType === 'satellite' && styles.layerTextActive]}>SATELLITE</Text>
             </Pressable>
+          </BlurView>
+          <View style={styles.mapFilters}>
+            <Pressable
+              style={[styles.mapFilterButton, showPlaces && styles.mapFilterButtonActive]}
+              onPress={() => setShowPlaces((current) => !current)}
+              accessibilityRole="button"
+              accessibilityLabel={showPlaces ? 'Hide places such as fuel stations' : 'Show places such as fuel stations'}
+              accessibilityState={{ selected: showPlaces }}
+            >
+              <Ionicons name="storefront-outline" size={14} color={showPlaces ? HOTLAP_LIME : '#A9B5A0'} />
+              <Text style={[styles.layerText, showPlaces && styles.layerTextActive]}>PLACES</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.mapFilterButton, showTraffic && styles.mapFilterButtonActive]}
+              onPress={() => setShowTraffic((current) => !current)}
+              accessibilityRole="button"
+              accessibilityLabel={showTraffic ? 'Hide traffic' : 'Show traffic'}
+              accessibilityState={{ selected: showTraffic }}
+            >
+              <Ionicons name="car-outline" size={14} color={showTraffic ? HOTLAP_LIME : '#A9B5A0'} />
+              <Text style={[styles.layerText, showTraffic && styles.layerTextActive]}>TRAFFIC</Text>
+            </Pressable>
           </View>
-          <Pressable
-            style={[styles.trafficButton, showTraffic && styles.trafficButtonActive]}
-            onPress={() => setShowTraffic((current) => !current)}
-            accessibilityRole="button"
-            accessibilityLabel={showTraffic ? 'Hide traffic' : 'Show traffic'}
-          >
-            <Ionicons name="car-outline" size={14} color={showTraffic ? HOTLAP_LIME : '#A9B5A0'} />
-            <Text style={[styles.layerText, showTraffic && styles.layerTextActive]}>TRAFFIC</Text>
-          </Pressable>
         </View>
 
         <View style={styles.mapButtons}>
-          <View style={styles.accuracyPill}>
+          <BlurView intensity={48} tint="dark" blurMethod="dimezisBlurView" style={styles.accuracyPill}>
             <Ionicons name={gpsAccuracy != null && gpsAccuracy <= 25 ? 'locate' : 'locate-outline'} size={14} color={gpsAccuracy != null && gpsAccuracy <= 25 ? HOTLAP_LIME : '#A9B5A0'} />
             <Text style={styles.accuracyText}>{accuracyLabel}</Text>
-          </View>
-          <Pressable style={styles.locateButton} onPress={() => void centerOnMe()} disabled={busy}>
+          </BlurView>
+          <Pressable onPress={() => void centerOnMe()} disabled={busy}>
+            <BlurView intensity={52} tint="dark" blurMethod="dimezisBlurView" style={styles.locateButton}>
             {busy ? <ActivityIndicator size="small" color={HOTLAP_LIME} /> : <Ionicons name="locate" size={21} color={HOTLAP_LIME} />}
+            </BlurView>
           </Pressable>
         </View>
 
         {permissionDenied && (
-          <View style={styles.permissionCard}>
+          <BlurView intensity={52} tint="dark" blurMethod="dimezisBlurView" style={styles.permissionCard}>
             <Ionicons name="location-outline" size={19} color={HOTLAP_LIME} />
             <View style={styles.permissionCopy}>
               <Text style={styles.permissionTitle}>Location access is off</Text>
@@ -561,10 +615,10 @@ export default function MapScreen() {
             <Pressable onPress={() => void Linking.openSettings()} accessibilityLabel="Open app settings">
               <Ionicons name="open-outline" size={19} color={HOTLAP_LIME} />
             </Pressable>
-          </View>
+          </BlurView>
         )}
 
-        <View style={styles.bottomPanel}>
+        <BlurView intensity={62} tint="dark" blurMethod="dimezisBlurView" style={styles.bottomPanel}>
           {active ? (
             <>
               <View style={styles.recordingHeader}>
@@ -577,8 +631,8 @@ export default function MapScreen() {
 
               <View style={styles.metricsRow}>
                 <View style={styles.primaryMetric}>
-                  <Text style={styles.distanceValue}>{formatDistance(distanceMeters)}</Text>
-                  <Text style={styles.distanceUnit}>{distanceMeters >= 1000 ? 'KILOMETERS' : 'METERS'}</Text>
+                  <Text style={styles.distanceValue}>{formatTravelDistance(distanceMeters, distanceUnit).split(' ')[0]}</Text>
+                  <Text style={styles.distanceUnit}>{distanceUnit === 'mi' ? 'MILES' : distanceMeters >= 1000 ? 'KILOMETERS' : 'METERS'}</Text>
                 </View>
                 <View style={styles.metricDivider} />
                 <View style={styles.secondaryMetric}>
@@ -587,8 +641,8 @@ export default function MapScreen() {
                 </View>
                 <View style={styles.metricDivider} />
                 <View style={styles.secondaryMetric}>
-                  <Text style={styles.metricValue}>{Math.round(averageSpeed)}</Text>
-                  <Text style={styles.metricLabel}>AVG KM/H</Text>
+                  <Text style={styles.metricValue}>{formatSpeed(averageSpeedKmh, distanceUnit).split(' ')[0]}</Text>
+                  <Text style={styles.metricLabel}>{distanceUnit === 'mi' ? 'AVG MPH' : 'AVG KM/H'}</Text>
                 </View>
               </View>
 
@@ -629,7 +683,7 @@ export default function MapScreen() {
                 </Pressable>
               </View>
               <View style={styles.completedSummary}>
-                <Text style={styles.completedDistance}>{formatDistance(distanceMeters)} <Text style={styles.completedUnit}>{distanceMeters >= 1000 ? 'km' : 'm'}</Text></Text>
+                <Text style={styles.completedDistance}>{formatTravelDistance(distanceMeters, distanceUnit)}</Text>
                 <Text style={styles.completedDetails}>{formatDuration(elapsedSeconds)} · {points.length} precise GPS fixes</Text>
               </View>
               <Pressable
@@ -643,6 +697,10 @@ export default function MapScreen() {
                 <Text style={styles.startButtonText}>
                   {savingDrive ? 'SAVING DRIVE…' : driveSaved === false ? 'RETRY SAVING DRIVE' : 'START NEW DRIVE'}
                 </Text>
+              </Pressable>
+              <Pressable style={styles.communityShareButton} onPress={shareDriveToCommunity} disabled={savingDrive || driveSaved !== true}>
+                <Ionicons name="people-outline" size={17} color={HOTLAP_LIME} />
+                <Text style={styles.communityShareText}>SHARE TO COMMUNITY</Text>
               </Pressable>
             </>
           ) : (
@@ -670,7 +728,7 @@ export default function MapScreen() {
               </View>
             </>
           )}
-        </View>
+        </BlurView>
       </View>
     </View>
   );
@@ -679,7 +737,7 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#101311' },
   overlay: { ...StyleSheet.absoluteFill, justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 104 },
-  header: { minHeight: 57, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 13, borderRadius: 17, backgroundColor: 'rgba(16,19,17,0.92)', borderWidth: 1, borderColor: 'rgba(169,181,160,0.14)' },
+  header: { minHeight: 57, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 13, borderRadius: 17, overflow: 'hidden', backgroundColor: 'rgba(16,19,17,0.56)', borderWidth: 1, borderColor: 'rgba(244,246,239,0.18)' },
   brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   brandMark: { width: 34, height: 34, borderRadius: 11, backgroundColor: HOTLAP_LIME, justifyContent: 'center', alignItems: 'center' },
   brandTitle: { fontFamily: 'Michroma', color: '#F4F6EF', fontSize: 12, letterSpacing: 1.4 },
@@ -691,22 +749,23 @@ const styles = StyleSheet.create({
   gpsBadgeText: { fontFamily: 'Manrope-Bold', color: '#A9B5A0', fontSize: 9, letterSpacing: 1 },
   gpsBadgeTextActive: { color: HOTLAP_LIME },
   mapButtons: { alignSelf: 'flex-end', alignItems: 'flex-end', gap: 9 },
-  mapToolsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
-  layerSwitch: { flexDirection: 'row', backgroundColor: 'rgba(16,19,17,0.92)', borderRadius: 12, padding: 3, borderWidth: 1, borderColor: 'rgba(169,181,160,0.16)' },
-  layerButton: { height: 34, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 10, borderRadius: 9 },
+  mapToolsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, gap: 6 },
+  layerSwitch: { flexDirection: 'row', backgroundColor: 'rgba(16,19,17,0.56)', borderRadius: 12, overflow: 'hidden', padding: 3, borderWidth: 1, borderColor: 'rgba(244,246,239,0.16)' },
+  layerButton: { height: 34, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 8, borderRadius: 9 },
   layerButtonActive: { backgroundColor: '#303A30' },
   layerText: { fontFamily: 'Manrope-Bold', color: '#A9B5A0', fontSize: 8, letterSpacing: 0.8 },
   layerTextActive: { color: HOTLAP_LIME },
-  trafficButton: { height: 40, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, borderRadius: 12, backgroundColor: 'rgba(16,19,17,0.92)', borderWidth: 1, borderColor: 'rgba(169,181,160,0.16)' },
-  trafficButtonActive: { backgroundColor: 'rgba(194,240,68,0.13)', borderColor: 'rgba(194,240,68,0.35)' },
-  accuracyPill: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, borderRadius: 16, backgroundColor: 'rgba(16,19,17,0.9)', borderWidth: 1, borderColor: 'rgba(169,181,160,0.15)' },
+  mapFilters: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  mapFilterButton: { height: 40, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, borderRadius: 12, backgroundColor: 'rgba(16,19,17,0.68)', borderWidth: 1, borderColor: 'rgba(244,246,239,0.16)' },
+  mapFilterButtonActive: { backgroundColor: 'rgba(194,240,68,0.13)', borderColor: 'rgba(194,240,68,0.35)' },
+  accuracyPill: { minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, borderRadius: 16, overflow: 'hidden', backgroundColor: 'rgba(16,19,17,0.56)', borderWidth: 1, borderColor: 'rgba(244,246,239,0.16)' },
   accuracyText: { fontFamily: 'Manrope-Bold', fontSize: 9, color: '#C8D0C1', letterSpacing: 0.4 },
-  locateButton: { width: 46, height: 46, borderRadius: 16, backgroundColor: 'rgba(16,19,17,0.94)', borderWidth: 1, borderColor: 'rgba(194,240,68,0.28)', justifyContent: 'center', alignItems: 'center' },
-  permissionCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 13, borderRadius: 14, backgroundColor: 'rgba(16,19,17,0.96)', borderWidth: 1, borderColor: 'rgba(194,240,68,0.25)' },
+  locateButton: { width: 46, height: 46, borderRadius: 16, overflow: 'hidden', backgroundColor: 'rgba(16,19,17,0.56)', borderWidth: 1, borderColor: 'rgba(244,246,239,0.2)', justifyContent: 'center', alignItems: 'center' },
+  permissionCard: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 13, borderRadius: 14, overflow: 'hidden', backgroundColor: 'rgba(16,19,17,0.66)', borderWidth: 1, borderColor: 'rgba(194,240,68,0.28)' },
   permissionCopy: { flex: 1 },
   permissionTitle: { fontFamily: 'Manrope-Bold', color: '#F4F6EF', fontSize: 11 },
   permissionText: { fontFamily: 'Manrope', color: '#A9B5A0', fontSize: 9, lineHeight: 14, marginTop: 3 },
-  bottomPanel: { borderRadius: 22, padding: 18, backgroundColor: 'rgba(16,19,17,0.96)', borderWidth: 1, borderColor: 'rgba(169,181,160,0.15)' },
+  bottomPanel: { borderRadius: 22, padding: 18, overflow: 'hidden', backgroundColor: 'rgba(16,19,17,0.66)', borderWidth: 1, borderColor: 'rgba(244,246,239,0.19)' },
   panelIntro: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   panelEyebrow: { fontFamily: 'Manrope-Bold', fontSize: 9, color: HOTLAP_LIME, letterSpacing: 1.8 },
   panelTitle: { fontFamily: 'Michroma', color: '#F4F6EF', fontSize: 19, marginTop: 5 },
@@ -715,6 +774,8 @@ const styles = StyleSheet.create({
   startButton: { minHeight: 52, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 9, marginTop: 14, paddingHorizontal: 14, borderRadius: 14, backgroundColor: HOTLAP_LIME },
   startButtonDimmed: { opacity: 0.8 },
   startButtonText: { fontFamily: 'Manrope-Bold', fontSize: 12, color: '#101311', letterSpacing: 1.1 },
+  communityShareButton: { minHeight: 42, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 9, borderRadius: 12, backgroundColor: '#20281C', borderWidth: 1, borderColor: 'rgba(194,240,68,0.3)' },
+  communityShareText: { fontFamily: 'Manrope-Bold', fontSize: 9, color: HOTLAP_LIME, letterSpacing: 1 },
   panelFooter: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 11 },
   panelFooterText: { fontFamily: 'Manrope', color: '#879181', fontSize: 9 },
   recordingHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

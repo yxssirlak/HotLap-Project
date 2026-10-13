@@ -11,5 +11,20 @@ export type Profile = {
 
 export type RootStackParamList = {
   MainTabs: undefined;
+  Sprint: undefined;
+  ShareActivity: {
+    activity: {
+      type: 'drive' | 'sprint';
+      vehicle: string;
+      durationSeconds: number;
+      distanceMeters: number;
+      averageSpeedKmh: number;
+      topSpeedKmh?: number;
+      details?: Record<string, number | string | null>;
+      track: Array<{ latitude: number; longitude: number }>;
+      startLatitude?: number;
+      startLongitude?: number;
+    };
+  };
   EditProfileScreen: { profile?: Profile };
 };
