@@ -11,7 +11,12 @@ import {
   Text,
   View,
 } from 'react-native';
+<<<<<<< HEAD
 import MapView, { MapType, Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+=======
+import type MapViewType from 'react-native-maps';
+import type { MapType, Region } from 'react-native-maps';
+>>>>>>> 9841cb2261befe319a9a611fc6d0409533c9b4e1
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,6 +47,7 @@ const DEFAULT_REGION: Region = {
 };
 
 const DARK_MAP_STYLE = [
+<<<<<<< HEAD
   { elementType: 'geometry', stylers: [{ color: '#000000' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#D4DAD5' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#000000' }] },
@@ -79,6 +85,34 @@ const DARK_MAP_STYLE_WITH_PLACES = [
   { featureType: 'poi.business', elementType: 'all', stylers: [{ visibility: 'on' }] },
   { featureType: 'poi.business', elementType: 'labels.icon', stylers: [{ color: HOTLAP_LIME }] },
   { featureType: 'poi.business', elementType: 'labels.text.fill', stylers: [{ color: '#D8E1D4' }] },
+=======
+  { elementType: 'geometry', stylers: [{ color: '#0a0e0c' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#a9b5a0' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#0a0e0c' }] },
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#1a201a' }] },
+  { featureType: 'administrative', elementType: 'labels.text.fill', stylers: [{ color: '#8f9a87' }] },
+  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#0f1410' }] },
+  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#101311' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#151a16' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#7a8572' }] },
+  { featureType: 'poi.attraction', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.medical', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#141813' }] },
+  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#7d8975' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1a201a' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#0a0e0c' }] },
+  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#8f9a87' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#252c25' }] },
+  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#101311' }] },
+  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#b8c4ad' }] },
+  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#1d2319' }] },
+  { featureType: 'road.local', elementType: 'geometry', stylers: [{ color: '#151a16' }] },
+  { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#7a8572' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0c1115' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#687b76' }] },
+>>>>>>> 9841cb2261befe319a9a611fc6d0409533c9b4e1
 ];
 
 function distanceBetweenMeters(a: TrackPoint, b: TrackPoint) {
@@ -108,7 +142,7 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isFocused = useIsFocused();
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<MapViewType>(null);
   const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
   const pointsRef = useRef<TrackPoint[]>([]);
   const startedAtRef = useRef<number | null>(null);
@@ -207,7 +241,7 @@ export default function MapScreen() {
       longitude: point.longitude,
       latitudeDelta: 0.007,
       longitudeDelta: 0.007,
-    }, animated ? 500 : 0);
+    }, animated ? 800 : 0);
   }
 
   async function requestLocationPermission() {
@@ -269,21 +303,27 @@ export default function MapScreen() {
     };
 
     const previous = pointsRef.current[pointsRef.current.length - 1];
+    let shouldAddToTrack = true;
     if (previous) {
       const segmentMeters = distanceBetweenMeters(previous, next);
       const elapsedMs = next.timestamp - previous.timestamp;
-      const minimumMovement = Math.max(3, Math.min(10, ((previous.accuracy || 0) + accuracy) * 0.35));
-      if (segmentMeters < minimumMovement) return;
       if (elapsedMs <= 0) return;
       const speedMetersPerSecond = segmentMeters / (elapsedMs / 1000);
-      if (speedMetersPerSecond < 0.5 || speedMetersPerSecond > 120) return;
-      setDistanceMeters((distance) => distance + segmentMeters);
+      if (speedMetersPerSecond > 90) return;
+
+      const minimumMovement = Math.max(1, Math.min(2.5, accuracy * 0.15));
+      shouldAddToTrack = segmentMeters >= minimumMovement;
+      if (shouldAddToTrack && speedMetersPerSecond >= 0.5) {
+        setDistanceMeters((distance) => distance + segmentMeters);
+      }
     }
+
+    setCurrentLocation(next);
+    centerOn(next);
+    if (!shouldAddToTrack) return;
 
     pointsRef.current = [...pointsRef.current, next];
     setPoints(pointsRef.current);
-    setCurrentLocation(next);
-    centerOn(next);
   }
 
   async function startWatcher() {
@@ -291,8 +331,8 @@ export default function MapScreen() {
     subscriptionRef.current = await Location.watchPositionAsync(
       {
         accuracy: Location.Accuracy.BestForNavigation,
-        distanceInterval: 2,
-        timeInterval: 1000,
+        distanceInterval: 1,
+        timeInterval: 500,
         mayShowUserSettingsDialog: true,
       },
       acceptLocation,
@@ -487,6 +527,8 @@ export default function MapScreen() {
       </View>
     );
   }
+
+  const { default: MapView, Marker, Polyline } = require('react-native-maps') as typeof import('react-native-maps');
 
   return (
     <View style={styles.container}>

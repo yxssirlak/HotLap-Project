@@ -1,6 +1,5 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Pressable,
@@ -14,7 +13,6 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { supabase } from '../lib/supabase';
 import { formatTravelDistance, getDistanceUnit } from '../utils/units';
 
@@ -37,12 +35,10 @@ type Vehicle = {
 
 type Drive = {
   id?: string | number;
-  title?: string | null;
-  name?: string | null;
-  route_name?: string | null;
+  started_at?: string | null;
   created_at?: string | null;
-  distance_km?: number | null;
-  distance?: number | null;
+  duration_seconds?: number | null;
+  distance_meters?: number | string | null;
 };
 
 type ProfileScreenProps = {
@@ -52,6 +48,79 @@ type ProfileScreenProps = {
 const ACCENT = '#C2F044';
 const DISTANCE_UNIT = getDistanceUnit();
 
+function ProfileSkeleton({ topInset }: { topInset: number }) {
+  return (
+    <View style={[styles.container, { paddingTop: topInset }]}>
+      <View style={styles.topBar}>
+        <View>
+          <View style={[styles.skeletonBar, styles.skeletonEyebrow]} />
+          <View style={[styles.skeletonBar, styles.skeletonUsername]} />
+        </View>
+        <View style={styles.topActions}>
+          <View style={[styles.skeletonCircle, styles.skeletonAction]} />
+          <View style={[styles.skeletonCircle, styles.skeletonAction]} />
+        </View>
+      </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        accessibilityLabel="Loading driver profile"
+      >
+        <View style={styles.heroCard}>
+          <View style={styles.heroTop}>
+            <View style={[styles.skeletonCircle, styles.skeletonAvatar]} />
+            <View style={styles.driverIdentity}>
+              <View style={[styles.skeletonBar, styles.skeletonName]} />
+              <View style={[styles.skeletonBar, styles.skeletonTag]} />
+            </View>
+          </View>
+          <View style={[styles.skeletonBar, styles.skeletonBio]} />
+          <View style={[styles.skeletonBar, styles.skeletonBioShort]} />
+          <View style={styles.heroButtons}>
+            <View style={[styles.skeletonBar, styles.skeletonPrimaryButton]} />
+            <View style={[styles.skeletonBar, styles.skeletonShareButton]} />
+          </View>
+          <View style={styles.completionBlock}>
+            <View style={[styles.skeletonBar, styles.skeletonCompletionTrack]} />
+            <View style={[styles.skeletonBar, styles.skeletonProgressTrack]} />
+          </View>
+        </View>
+
+        <View style={styles.statsCard}>
+          {[0, 1, 2].map((item) => (
+            <View key={item} style={styles.skeletonStat}>
+              <View style={[styles.skeletonBar, styles.skeletonStatNumber]} />
+              <View style={[styles.skeletonBar, styles.skeletonStatLabel]} />
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.quickActions}>
+          {[0, 1].map((item) => (
+            <View key={item} style={styles.skeletonQuickAction}>
+              <View style={[styles.skeletonCircle, styles.skeletonQuickIcon]} />
+              <View style={styles.skeletonQuickCopy}>
+                <View style={[styles.skeletonBar, styles.skeletonQuickTitle]} />
+                <View style={[styles.skeletonBar, styles.skeletonQuickSubtitle]} />
+              </View>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.tabsContainer}>
+          <View style={[styles.skeletonBar, styles.skeletonTab]} />
+          <View style={[styles.skeletonBar, styles.skeletonTab]} />
+        </View>
+        <View style={styles.section}>
+          <View style={[styles.skeletonBar, styles.skeletonSectionTitle]} />
+          <View style={[styles.skeletonBar, styles.skeletonSectionCaption]} />
+          <View style={[styles.skeletonBar, styles.skeletonCarCard]} />
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
 function formatDate(value?: string | null) {
   if (!value) return 'Recent drive';
   const date = new Date(value);
@@ -60,9 +129,21 @@ function formatDate(value?: string | null) {
     : date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function formatDuration(seconds?: number | null) {
+  if (seconds == null || !Number.isFinite(seconds)) return null;
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  const twoDigits = (value: number) => String(value).padStart(2, '0');
+  return hours > 0
+    ? `${hours}:${twoDigits(minutes)}:${twoDigits(remainingSeconds)}`
+    : `${twoDigits(minutes)}:${twoDigits(remainingSeconds)}`;
+}
+
 export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
+  const hasLoadedRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
@@ -75,7 +156,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   const isActivityTab = activeTab === 'activity';
 
   const fetchProfileData = useCallback(async (showLoader = true) => {
-    if (showLoader) setLoading(true);
+    if (showLoader && !hasLoadedRef.current) setLoading(true);
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
@@ -84,7 +165,12 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
       const [profileResult, vehicleResult, drivesResult, crewResult, followingResult] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
         supabase.from('vehicles').select('*').eq('owner_id', user.id).limit(1).maybeSingle(),
-        supabase.from('routes').select('*', { count: 'exact' }).eq('creator_id', user.id).order('created_at', { ascending: false }).limit(5),
+        supabase
+          .from('drive_sessions')
+          .select('id, started_at, created_at, duration_seconds, distance_meters', { count: 'exact' })
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(5),
         supabase.from('crew_connections').select('*', { count: 'exact', head: true }).eq('following_id', user.id),
         supabase.from('crew_connections').select('*', { count: 'exact', head: true }).eq('follower_id', user.id),
       ]);
@@ -110,6 +196,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
     } catch (error) {
       Alert.alert('Profile unavailable', error instanceof Error ? error.message : 'Please try again.');
     } finally {
+      hasLoadedRef.current = true;
       setLoading(false);
       setRefreshing(false);
     }
@@ -168,12 +255,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
   const carYear = vehicle?.year || profile?.car_year;
 
   if (loading) {
-    return (
-      <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={ACCENT} />
-        <Text style={styles.loadingText}>Loading your driver profile…</Text>
-      </View>
-    );
+    return <ProfileSkeleton topInset={insets.top} />;
   }
 
   return (
@@ -208,7 +290,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
           />
         }
       >
-        <Animated.View entering={FadeInDown.duration(450).delay(60)} style={styles.heroCard}>
+        <View style={styles.heroCard}>
           <View style={styles.heroTop}>
             <View style={styles.avatarRing}>
               {profile?.avatar_url ? (
@@ -254,9 +336,9 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
               <Text style={styles.completionHint}>Finish your profile so drivers know who they’re riding with.</Text>
             )}
           </View>
-        </Animated.View>
+        </View>
 
-        <Animated.View entering={FadeInDown.duration(450).delay(120)} style={styles.statsCard}>
+        <View style={styles.statsCard}>
           <View style={styles.statBlock}>
             <Text style={styles.statNumber}>{driveCount}</Text>
             <Text style={styles.statLabel}>DRIVES</Text>
@@ -271,9 +353,9 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
             <Text style={styles.statNumber}>{followingCount}</Text>
             <Text style={styles.statLabel}>FOLLOWING</Text>
           </View>
-        </Animated.View>
+        </View>
 
-        <Animated.View entering={FadeInDown.duration(450).delay(180)} style={styles.quickActions}>
+        <View style={styles.quickActions}>
           <Pressable style={styles.quickAction} onPress={() => navigation.navigate('Record')}>
             <View style={styles.quickIcon}><Ionicons name="radio-button-on-outline" size={19} color={ACCENT} /></View>
             <View style={styles.quickText}>
@@ -290,7 +372,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
             </View>
             <Ionicons name="chevron-forward" size={17} color="#687263" />
           </Pressable>
-        </Animated.View>
+        </View>
 
         <View style={styles.tabsContainer}>
           <Pressable style={[styles.tabButton, isGarageTab && styles.activeTab]} onPress={() => setActiveTab('garage')}>
@@ -365,18 +447,31 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
               <Ionicons name="trail-sign-outline" size={25} color={ACCENT} />
             </View>
             {drives.length ? drives.map((drive, index) => {
+<<<<<<< HEAD
               const driveName = drive.title || drive.name || drive.route_name || `Drive ${driveCount - index}`;
               const distance = drive.distance_km ?? drive.distance;
               const hasDistance = typeof distance === 'number';
+=======
+              const driveName = `Drive ${driveCount - index}`;
+              const distanceMeters = Number(drive.distance_meters);
+              const duration = formatDuration(drive.duration_seconds);
+>>>>>>> 9841cb2261befe319a9a611fc6d0409533c9b4e1
               return (
                 <View key={drive.id ?? `${driveName}-${index}`} style={styles.driveCard}>
                   <View style={styles.driveIcon}><Ionicons name="navigate-outline" size={19} color={ACCENT} /></View>
                   <View style={styles.driveCopy}>
                     <Text style={styles.driveName} numberOfLines={1}>{driveName}</Text>
-                    <Text style={styles.driveDate}>{formatDate(drive.created_at)}</Text>
+                    <Text style={styles.driveDate}>
+                      {formatDate(drive.started_at || drive.created_at)}{duration ? ` · ${duration}` : ''}
+                    </Text>
                   </View>
+<<<<<<< HEAD
                   {hasDistance && (
                     <Text style={styles.driveDistance}>{formatTravelDistance(distance * 1000, DISTANCE_UNIT, 1)}</Text>
+=======
+                  {Number.isFinite(distanceMeters) && (
+                    <Text style={styles.driveDistance}>{(distanceMeters / 1000).toFixed(1)} km</Text>
+>>>>>>> 9841cb2261befe319a9a611fc6d0409533c9b4e1
                   )}
                 </View>
               );
@@ -405,9 +500,33 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#101311' },
-  loadingContainer: { flex: 1, backgroundColor: '#101311', justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontFamily: 'Manrope', color: '#A9B5A0', fontSize: 13, marginTop: 12 },
   topBar: { minHeight: 64, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 22, paddingBottom: 8 },
+  skeletonBar: { backgroundColor: '#303A30', borderRadius: 6 },
+  skeletonCircle: { backgroundColor: '#303A30', borderRadius: 999 },
+  skeletonEyebrow: { width: 88, height: 8 },
+  skeletonUsername: { width: 126, height: 14, marginTop: 7 },
+  skeletonAction: { width: 40, height: 40 },
+  skeletonAvatar: { width: 72, height: 72, borderWidth: 2, borderColor: '#3A4537' },
+  skeletonName: { width: 150, height: 15 },
+  skeletonTag: { width: 112, height: 9, marginTop: 9 },
+  skeletonBio: { width: '100%', height: 10, marginTop: 17 },
+  skeletonBioShort: { width: '70%', height: 10, marginTop: 7 },
+  skeletonPrimaryButton: { flex: 1, height: 42, borderRadius: 11 },
+  skeletonShareButton: { width: 48, height: 42, borderRadius: 11 },
+  skeletonCompletionTrack: { width: '100%', height: 8, marginBottom: 8 },
+  skeletonProgressTrack: { width: '100%', height: 5 },
+  skeletonStat: { flex: 1, alignItems: 'center', gap: 7 },
+  skeletonStatNumber: { width: 32, height: 18 },
+  skeletonStatLabel: { width: 54, height: 8 },
+  skeletonQuickAction: { minHeight: 68, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#303A30' },
+  skeletonQuickIcon: { width: 38, height: 38, borderRadius: 12 },
+  skeletonQuickCopy: { flex: 1, marginLeft: 11, gap: 7 },
+  skeletonQuickTitle: { width: '45%', height: 10 },
+  skeletonQuickSubtitle: { width: '65%', height: 8 },
+  skeletonTab: { width: '42%', height: 10 },
+  skeletonSectionTitle: { width: 132, height: 12 },
+  skeletonSectionCaption: { width: 180, height: 8, marginTop: 8 },
+  skeletonCarCard: { width: '100%', height: 225, borderRadius: 18, marginTop: 16 },
   eyebrow: { fontFamily: 'Manrope-Bold', fontSize: 9, color: '#879181', letterSpacing: 1.8 },
   username: { fontFamily: 'Manrope-Bold', fontSize: 16, color: '#F4F6EF', marginTop: 2 },
   topActions: { flexDirection: 'row', gap: 9 },
