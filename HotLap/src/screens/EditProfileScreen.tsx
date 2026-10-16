@@ -171,6 +171,20 @@ export default function EditProfileScreen({ route, navigation }: EditProfileScre
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        <Animated.View entering={FadeInDown.duration(450)} style={styles.introCard}>
+          <View style={styles.introCopy}>
+            <View style={styles.introEyebrow}>
+              <View style={styles.introDot} />
+              <Text style={styles.introEyebrowText}>DRIVER PROFILE</Text>
+            </View>
+            <Text style={styles.introTitle}>Make it yours.</Text>
+            <Text style={styles.introDescription}>Give the crew a look at the driver behind the wheel.</Text>
+          </View>
+          <View style={styles.introIcon}>
+            <Ionicons name="speedometer-outline" size={25} color="#C2F044" />
+          </View>
+        </Animated.View>
+
         <Animated.View entering={FadeInDown.duration(450).delay(80)} style={styles.avatarSection}>
           <Pressable
             style={styles.avatarWrapper}
@@ -195,54 +209,73 @@ export default function EditProfileScreen({ route, navigation }: EditProfileScre
           <Text style={styles.changePhotoText}>Tap to choose a profile photo</Text>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.duration(450).delay(140)} style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Display name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Your name"
-            placeholderTextColor="#687263"
-            value={fullName}
-            onChangeText={setFullName}
-            maxLength={60}
-            autoCapitalize="words"
-            returnKeyType="next"
-          />
+        <Animated.View entering={FadeInDown.duration(450).delay(140)} style={styles.identityCard}>
+          <View style={styles.sectionHeading}>
+            <View style={styles.sectionIcon}>
+              <Ionicons name="person-outline" size={17} color="#C2F044" />
+            </View>
+            <View>
+              <Text style={styles.sectionTitle}>ABOUT YOU</Text>
+              <Text style={styles.sectionHint}>Your name, handle and road story</Text>
+            </View>
+          </View>
+
+          <View style={styles.inputSection}>
+            <Text style={styles.inputLabel}>Display name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Your name"
+              placeholderTextColor="#687263"
+              value={fullName}
+              onChangeText={setFullName}
+              maxLength={60}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+          </View>
+
+          <View style={styles.inputSection}>
+            <Text style={styles.inputLabel}>Driver handle</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="your_handle"
+              placeholderTextColor="#687263"
+              value={username}
+              onChangeText={setUsername}
+              maxLength={24}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="next"
+            />
+            <Text style={styles.helperText}>This is how other drivers find and share your profile.</Text>
+          </View>
+
+          <View style={[styles.inputSection, styles.lastInputSection]}>
+            <Text style={styles.inputLabel}>Driver bio</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Tell the crew about yourself, your builds and your favorite roads..."
+              placeholderTextColor="#687263"
+              value={bio}
+              onChangeText={setBio}
+              multiline
+              maxLength={160}
+              textAlignVertical="top"
+            />
+            <Text style={styles.charCount}>{bio.length}/160</Text>
+          </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.duration(450).delay(180)} style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Driver handle</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="your_handle"
-            placeholderTextColor="#687263"
-            value={username}
-            onChangeText={setUsername}
-            maxLength={24}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="next"
-          />
-          <Text style={styles.helperText}>This is how other drivers find and share your profile.</Text>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.duration(450).delay(220)} style={styles.inputSection}>
-          <Text style={styles.inputLabel}>Driver bio</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Tell the crew about yourself, your builds and your favorite roads..."
-            placeholderTextColor="#687263"
-            value={bio}
-            onChangeText={setBio}
-            multiline
-            maxLength={160}
-            textAlignVertical="top"
-          />
-          <Text style={styles.charCount}>{bio.length}/160</Text>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.duration(450).delay(260)} style={styles.carSection}>
-          <Text style={styles.carSectionTitle}>YOUR GARAGE</Text>
-          <Text style={styles.carSectionHint}>Add your main car to your HotLap profile.</Text>
+        <Animated.View entering={FadeInDown.duration(450).delay(200)} style={styles.carSection}>
+          <View style={styles.carSectionHeading}>
+            <View style={styles.sectionIcon}>
+              <Ionicons name="car-sport-outline" size={18} color="#C2F044" />
+            </View>
+            <View>
+              <Text style={styles.carSectionTitle}>YOUR GARAGE</Text>
+              <Text style={styles.sectionHint}>The car you bring to the crew</Text>
+            </View>
+          </View>
           <View style={styles.carInputRow}>
             <TextInput
               style={[styles.input, styles.carYearInput]}
@@ -279,7 +312,12 @@ export default function EditProfileScreen({ route, navigation }: EditProfileScre
         <Pressable style={[styles.saveButton, loading && styles.disabledButton]} onPress={handleSave} disabled={loading}>
           {loading
             ? <ActivityIndicator color="#101311" />
-            : <Text style={styles.saveButtonText}>Save profile</Text>}
+            : (
+              <View style={styles.saveButtonContent}>
+                <Text style={styles.saveButtonText}>Save profile</Text>
+                <Ionicons name="arrow-forward" size={18} color="#101311" />
+              </View>
+            )}
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -293,28 +331,43 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: 'Michroma', fontSize: 17, color: '#F4F6EF' },
   headerSpacer: { width: 40 },
   content: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32 },
-  avatarSection: { alignItems: 'center', marginBottom: 32 },
+  introCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 17, marginBottom: 22, borderRadius: 16, backgroundColor: '#1A201A', borderWidth: 1, borderColor: '#303A30' },
+  introCopy: { flex: 1, paddingRight: 12 },
+  introEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  introDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#C2F044' },
+  introEyebrowText: { fontFamily: 'Manrope-Bold', fontSize: 9, color: '#A9B5A0', letterSpacing: 1.4 },
+  introTitle: { fontFamily: 'Michroma', fontSize: 18, color: '#F4F6EF', marginTop: 7 },
+  introDescription: { fontFamily: 'Manrope', fontSize: 12, lineHeight: 17, color: '#A9B5A0', marginTop: 4 },
+  introIcon: { width: 48, height: 48, borderRadius: 15, backgroundColor: 'rgba(194,240,68,0.1)', borderWidth: 1, borderColor: 'rgba(194,240,68,0.2)', alignItems: 'center', justifyContent: 'center' },
+  avatarSection: { alignItems: 'center', marginBottom: 23 },
   avatarWrapper: { width: 116, height: 116, borderRadius: 58, borderWidth: 2, borderColor: '#C2F044', backgroundColor: '#252C25', justifyContent: 'center', alignItems: 'center', position: 'relative' },
   avatarImage: { width: '100%', height: '100%', borderRadius: 58 },
   avatarPlaceholder: { width: '100%', height: '100%', borderRadius: 58, justifyContent: 'center', alignItems: 'center' },
   avatarLetter: { fontFamily: 'Michroma', fontSize: 38, color: '#F4F6EF' },
   cameraButton: { position: 'absolute', bottom: -2, right: -2, width: 36, height: 36, borderRadius: 18, backgroundColor: '#C2F044', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#101311' },
   changePhotoText: { fontFamily: 'Manrope', fontSize: 13, color: '#A9B5A0', marginTop: 12 },
-  inputSection: { marginBottom: 22 },
+  identityCard: { marginBottom: 18, padding: 16, borderRadius: 16, backgroundColor: '#1A201A', borderWidth: 1, borderColor: '#303A30' },
+  sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 20 },
+  sectionIcon: { width: 36, height: 36, borderRadius: 11, backgroundColor: 'rgba(194,240,68,0.1)', alignItems: 'center', justifyContent: 'center' },
+  sectionTitle: { fontFamily: 'Manrope-Bold', fontSize: 11, color: '#F4F6EF', letterSpacing: 1.1 },
+  sectionHint: { fontFamily: 'Manrope', fontSize: 11, color: '#879181', marginTop: 3 },
+  inputSection: { marginBottom: 18 },
+  lastInputSection: { marginBottom: 0 },
   inputLabel: { fontFamily: 'Manrope-Bold', fontSize: 13, color: '#F4F6EF', marginBottom: 8 },
-  input: { minHeight: 52, backgroundColor: '#252C25', borderRadius: 12, borderWidth: 1, borderColor: '#303A30', paddingHorizontal: 15, color: '#F4F6EF', fontFamily: 'Manrope', fontSize: 15 },
+  input: { minHeight: 52, backgroundColor: 'rgba(244,246,239,0.06)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(244,246,239,0.14)', paddingHorizontal: 15, color: '#F4F6EF', fontFamily: 'Manrope', fontSize: 15 },
   textArea: { minHeight: 120, paddingTop: 14, paddingBottom: 14 },
   helperText: { fontFamily: 'Manrope', fontSize: 11, color: '#879181', marginTop: 7 },
   charCount: { fontFamily: 'Manrope', fontSize: 11, color: '#879181', textAlign: 'right', marginTop: 7 },
-  carSection: { marginBottom: 24, padding: 15, borderRadius: 14, backgroundColor: '#1A201A', borderWidth: 1, borderColor: '#303A30' },
-  carSectionTitle: { fontFamily: 'Manrope-Bold', fontSize: 12, color: '#F4F6EF', letterSpacing: 1 },
-  carSectionHint: { fontFamily: 'Manrope', fontSize: 11, color: '#879181', marginTop: 5, marginBottom: 13 },
+  carSection: { marginBottom: 24, padding: 15, borderRadius: 16, backgroundColor: 'rgba(244,246,239,0.05)', borderWidth: 1, borderColor: 'rgba(244,246,239,0.12)' },
+  carSectionHeading: { flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 9 },
+  carSectionTitle: { fontFamily: 'Manrope-Bold', fontSize: 11, color: '#F4F6EF', letterSpacing: 1.1 },
   carInputRow: { flexDirection: 'row', gap: 9 },
   carYearInput: { width: 86 },
   carMakeInput: { flex: 1 },
   carModelInput: { marginTop: 9 },
   footer: { paddingHorizontal: 24, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#252C25' },
-  saveButton: { backgroundColor: '#C2F044', height: 54, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  saveButton: { backgroundColor: '#C2F044', height: 54, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
+  saveButtonContent: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   disabledButton: { opacity: 0.7 },
   saveButtonText: { color: '#101311', fontFamily: 'Manrope-Bold', fontSize: 15 },
 });

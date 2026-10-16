@@ -11,12 +11,8 @@ import {
   Text,
   View,
 } from 'react-native';
-<<<<<<< HEAD
-import MapView, { MapType, Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
-=======
 import type MapViewType from 'react-native-maps';
 import type { MapType, Region } from 'react-native-maps';
->>>>>>> 9841cb2261befe319a9a611fc6d0409533c9b4e1
 import * as Location from 'expo-location';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +22,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { supabase } from '../lib/supabase';
+import { startDriveTracking, stopDriveTracking } from '../lib/driveTracking';
 import { formatSpeed, formatTravelDistance, getDistanceUnit } from '../utils/units';
 import { RootStackParamList } from '../navigation/types';
 
@@ -37,6 +34,7 @@ type TrackPoint = {
 };
 
 const HOTLAP_LIME = '#C2F044';
+const MARKER_ANIMATION_MS = 600;
 const USE_GOOGLE_MAPS = Platform.OS === 'android' ||
   Boolean(Constants.expoConfig?.extra?.googleMapsConfigured);
 const DEFAULT_REGION: Region = {
@@ -47,7 +45,6 @@ const DEFAULT_REGION: Region = {
 };
 
 const DARK_MAP_STYLE = [
-<<<<<<< HEAD
   { elementType: 'geometry', stylers: [{ color: '#000000' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#D4DAD5' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#000000' }] },
@@ -85,34 +82,6 @@ const DARK_MAP_STYLE_WITH_PLACES = [
   { featureType: 'poi.business', elementType: 'all', stylers: [{ visibility: 'on' }] },
   { featureType: 'poi.business', elementType: 'labels.icon', stylers: [{ color: HOTLAP_LIME }] },
   { featureType: 'poi.business', elementType: 'labels.text.fill', stylers: [{ color: '#D8E1D4' }] },
-=======
-  { elementType: 'geometry', stylers: [{ color: '#0a0e0c' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#a9b5a0' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#0a0e0c' }] },
-  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#1a201a' }] },
-  { featureType: 'administrative', elementType: 'labels.text.fill', stylers: [{ color: '#8f9a87' }] },
-  { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#0f1410' }] },
-  { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#101311' }] },
-  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#151a16' }] },
-  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#7a8572' }] },
-  { featureType: 'poi.attraction', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi.medical', stylers: [{ visibility: 'off' }] },
-  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#141813' }] },
-  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#7d8975' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1a201a' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#0a0e0c' }] },
-  { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#8f9a87' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#252c25' }] },
-  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#101311' }] },
-  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#b8c4ad' }] },
-  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#1d2319' }] },
-  { featureType: 'road.local', elementType: 'geometry', stylers: [{ color: '#151a16' }] },
-  { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#7a8572' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0c1115' }] },
-  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#687b76' }] },
->>>>>>> 9841cb2261befe319a9a611fc6d0409533c9b4e1
 ];
 
 function distanceBetweenMeters(a: TrackPoint, b: TrackPoint) {
@@ -143,6 +112,8 @@ export default function MapScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isFocused = useIsFocused();
   const mapRef = useRef<MapViewType>(null);
+  const markerRef = useRef<any>(null);
+  const animatedCoordRef = useRef<any>(null);
   const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
   const pointsRef = useRef<TrackPoint[]>([]);
   const startedAtRef = useRef<number | null>(null);
@@ -173,17 +144,6 @@ export default function MapScreen() {
     return () => clearInterval(timer);
   }, [active, paused, startedAt]);
 
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', (nextState) => {
-      if (nextState !== 'active') pauseDrive();
-    });
-    return () => subscription.remove();
-  }, [active, paused]);
-
-  useEffect(() => {
-    if (!isFocused) pauseDrive();
-  }, [isFocused]);
-
   useEffect(() => () => {
     subscriptionRef.current?.remove();
   }, []);
@@ -195,6 +155,22 @@ export default function MapScreen() {
   useEffect(() => {
     if (mapReady && currentLocation && !active) centerOn(currentLocation, false);
   }, [mapReady, currentLocation, active]);
+
+  useEffect(() => {
+    if (!currentLocation || !animatedCoordRef.current) return;
+    const target = { latitude: currentLocation.latitude, longitude: currentLocation.longitude };
+    if (Platform.OS === 'android') {
+      markerRef.current?.animateMarkerToCoordinate(target, MARKER_ANIMATION_MS);
+    } else {
+      animatedCoordRef.current.timing({
+        ...target,
+        latitudeDelta: 0,
+        longitudeDelta: 0,
+        duration: MARKER_ANIMATION_MS,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [currentLocation]);
 
   async function loadLatestDrive() {
     if (Platform.OS === 'web') return;
@@ -257,8 +233,7 @@ export default function MapScreen() {
 
   function pauseDrive() {
     if (!active || paused) return;
-    subscriptionRef.current?.remove();
-    subscriptionRef.current = null;
+    void stopDriveTracking();
     pausedAtRef.current = Date.now();
     setPaused(true);
   }
@@ -319,7 +294,9 @@ export default function MapScreen() {
     }
 
     setCurrentLocation(next);
-    centerOn(next);
+    mapRef.current?.animateCamera({
+      center: { latitude: next.latitude, longitude: next.longitude },
+    }, { duration: MARKER_ANIMATION_MS });
     if (!shouldAddToTrack) return;
 
     pointsRef.current = [...pointsRef.current, next];
@@ -327,29 +304,23 @@ export default function MapScreen() {
   }
 
   async function startWatcher() {
-    subscriptionRef.current?.remove();
-    subscriptionRef.current = await Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.BestForNavigation,
-        distanceInterval: 1,
-        timeInterval: 500,
-        mayShowUserSettingsDialog: true,
-      },
-      acceptLocation,
-      (error) => {
-        Alert.alert('GPS tracking stopped', error);
-        subscriptionRef.current?.remove();
-        subscriptionRef.current = null;
-        setActive(false);
-        setPaused(false);
-      },
-    );
+    await startDriveTracking(acceptLocation);
   }
 
   async function startDrive() {
     setBusy(true);
     try {
       if (!(await requestLocationPermission())) return;
+      const background = await Location.getBackgroundPermissionsAsync();
+      if (!background.granted) {
+        const result = await Location.requestBackgroundPermissionsAsync();
+        if (!result.granted) {
+          Alert.alert(
+            'Background location recommended',
+            'Without "Always" location access, the drive stops recording when you leave the app or lock your screen.',
+          );
+        }
+      }
 
       if (!active || pointsRef.current.length === 0) {
         const firstFix = await Location.getCurrentPositionAsync({
@@ -455,8 +426,7 @@ export default function MapScreen() {
   }
 
   async function finishDrive() {
-    subscriptionRef.current?.remove();
-    subscriptionRef.current = null;
+    void stopDriveTracking();
     setActive(false);
     setPaused(false);
     setStartedAt(null);
@@ -528,7 +498,15 @@ export default function MapScreen() {
     );
   }
 
-  const { default: MapView, Marker, Polyline } = require('react-native-maps') as typeof import('react-native-maps');
+  const { default: MapView, Marker, MarkerAnimated, AnimatedRegion, Polyline, PROVIDER_GOOGLE } = require('react-native-maps') as typeof import('react-native-maps');
+  if (currentLocation && !animatedCoordRef.current) {
+    animatedCoordRef.current = new AnimatedRegion({
+      latitude: currentLocation.latitude,
+      longitude: currentLocation.longitude,
+      latitudeDelta: 0,
+      longitudeDelta: 0,
+    });
+  }
 
   return (
     <View style={styles.container}>
@@ -564,12 +542,17 @@ export default function MapScreen() {
             <View style={styles.startMarker}><View style={styles.startMarkerDot} /></View>
           </Marker>
         )}
-        {currentLocation && (
-          <Marker coordinate={currentLocation} title={active ? 'Current position' : 'Last drive'} anchor={{ x: 0.5, y: 0.5 }}>
+        {currentLocation && animatedCoordRef.current && (
+          <MarkerAnimated
+            ref={markerRef}
+            coordinate={animatedCoordRef.current}
+            title={active ? 'Current position' : 'Last drive'}
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
             <View style={styles.currentMarkerHalo}>
               <View style={styles.currentMarkerDot} />
             </View>
-          </Marker>
+          </MarkerAnimated>
         )}
       </MapView>
 

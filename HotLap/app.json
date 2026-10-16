@@ -37,7 +37,11 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "HotLap uses your location while you use the app to show your position and record drives."
+          "locationWhenInUsePermission": "HotLap uses your location while you use the app to show your position and record drives.",
+          "locationAlwaysAndWhenInUsePermission": "HotLap uses your location in the background to keep recording your drive while the screen is off or another app is open.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ]
     ],

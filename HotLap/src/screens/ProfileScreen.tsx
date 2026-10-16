@@ -447,15 +447,10 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
               <Ionicons name="trail-sign-outline" size={25} color={ACCENT} />
             </View>
             {drives.length ? drives.map((drive, index) => {
-<<<<<<< HEAD
-              const driveName = drive.title || drive.name || drive.route_name || `Drive ${driveCount - index}`;
-              const distance = drive.distance_km ?? drive.distance;
-              const hasDistance = typeof distance === 'number';
-=======
               const driveName = `Drive ${driveCount - index}`;
-              const distanceMeters = Number(drive.distance_meters);
+              const distanceMeters = drive.distance_meters == null ? null : Number(drive.distance_meters);
+              const hasDistance = distanceMeters !== null && Number.isFinite(distanceMeters);
               const duration = formatDuration(drive.duration_seconds);
->>>>>>> 9841cb2261befe319a9a611fc6d0409533c9b4e1
               return (
                 <View key={drive.id ?? `${driveName}-${index}`} style={styles.driveCard}>
                   <View style={styles.driveIcon}><Ionicons name="navigate-outline" size={19} color={ACCENT} /></View>
@@ -465,13 +460,8 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
                       {formatDate(drive.started_at || drive.created_at)}{duration ? ` · ${duration}` : ''}
                     </Text>
                   </View>
-<<<<<<< HEAD
                   {hasDistance && (
-                    <Text style={styles.driveDistance}>{formatTravelDistance(distance * 1000, DISTANCE_UNIT, 1)}</Text>
-=======
-                  {Number.isFinite(distanceMeters) && (
-                    <Text style={styles.driveDistance}>{(distanceMeters / 1000).toFixed(1)} km</Text>
->>>>>>> 9841cb2261befe319a9a611fc6d0409533c9b4e1
+                    <Text style={styles.driveDistance}>{formatTravelDistance(distanceMeters, DISTANCE_UNIT, 1)}</Text>
                   )}
                 </View>
               );
@@ -532,7 +522,7 @@ const styles = StyleSheet.create({
   topActions: { flexDirection: 'row', gap: 9 },
   iconButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#252C25', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#303A30' },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 118 },
-  heroCard: { backgroundColor: '#1A201A', borderRadius: 22, borderWidth: 1, borderColor: '#303A30', padding: 18 },
+  heroCard: { backgroundColor: 'rgba(244,246,239,0.06)', borderRadius: 22, borderWidth: 1, borderColor: 'rgba(244,246,239,0.13)', padding: 18 },
   heroTop: { flexDirection: 'row', alignItems: 'center' },
   avatarRing: { width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: ACCENT, backgroundColor: '#252C25', padding: 3 },
   avatar: { width: '100%', height: '100%', borderRadius: 32 },
@@ -554,12 +544,12 @@ const styles = StyleSheet.create({
   progressTrack: { height: 5, backgroundColor: '#303A30', borderRadius: 4, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: ACCENT, borderRadius: 4 },
   completionHint: { fontFamily: 'Manrope', fontSize: 10, color: '#879181', marginTop: 7 },
-  statsCard: { marginTop: 13, backgroundColor: '#1A201A', borderRadius: 16, borderWidth: 1, borderColor: '#303A30', flexDirection: 'row', alignItems: 'center', paddingVertical: 15 },
+  statsCard: { marginTop: 13, backgroundColor: 'rgba(244,246,239,0.05)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(244,246,239,0.12)', flexDirection: 'row', alignItems: 'center', paddingVertical: 15 },
   statBlock: { flex: 1, alignItems: 'center' },
   statNumber: { fontFamily: 'Michroma', fontSize: 19, color: '#F4F6EF' },
   statLabel: { fontFamily: 'Manrope-Bold', fontSize: 9, color: '#879181', letterSpacing: 1.2, marginTop: 3 },
   statDivider: { width: 1, height: 30, backgroundColor: '#303A30' },
-  quickActions: { marginTop: 13, backgroundColor: '#1A201A', borderRadius: 16, borderWidth: 1, borderColor: '#303A30', paddingHorizontal: 14 },
+  quickActions: { marginTop: 13, backgroundColor: 'rgba(244,246,239,0.05)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(244,246,239,0.12)', paddingHorizontal: 14 },
   quickAction: { minHeight: 68, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#303A30' },
   quickIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#252C25', justifyContent: 'center', alignItems: 'center' },
   quickText: { flex: 1, marginLeft: 11 },
@@ -583,12 +573,12 @@ const styles = StyleSheet.create({
   carEmptyText: { fontFamily: 'Manrope', fontSize: 12, color: '#A9B5A0', marginTop: 5 },
   carEditButton: { flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start', marginTop: 16 },
   carEditText: { fontFamily: 'Manrope-Bold', fontSize: 11, color: ACCENT },
-  achievementCard: { marginTop: 12, padding: 14, backgroundColor: '#1A201A', borderRadius: 14, borderWidth: 1, borderColor: '#303A30', flexDirection: 'row', alignItems: 'center' },
+  achievementCard: { marginTop: 12, padding: 14, backgroundColor: 'rgba(244,246,239,0.05)', borderRadius: 14, borderWidth: 1, borderColor: 'rgba(244,246,239,0.12)', flexDirection: 'row', alignItems: 'center' },
   achievementIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#252C25', justifyContent: 'center', alignItems: 'center' },
   achievementCopy: { flex: 1, marginLeft: 11 },
   achievementTitle: { fontFamily: 'Manrope-Bold', fontSize: 12, color: '#F4F6EF' },
   achievementSubtitle: { fontFamily: 'Manrope', fontSize: 10, color: '#879181', marginTop: 3 },
-  driveCard: { minHeight: 68, paddingHorizontal: 13, backgroundColor: '#1A201A', borderRadius: 13, borderWidth: 1, borderColor: '#303A30', flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  driveCard: { minHeight: 68, paddingHorizontal: 13, backgroundColor: 'rgba(244,246,239,0.05)', borderRadius: 13, borderWidth: 1, borderColor: 'rgba(244,246,239,0.12)', flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   driveIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#252C25', justifyContent: 'center', alignItems: 'center' },
   driveCopy: { flex: 1, marginLeft: 11 },
   driveName: { fontFamily: 'Manrope-Bold', fontSize: 12, color: '#F4F6EF' },

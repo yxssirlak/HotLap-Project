@@ -16,7 +16,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Polyline, Region } from 'react-native-maps';
+import type { Region } from 'react-native-maps';
+import { MapView, Polyline } from '../components/NativeMaps';
 import * as Location from 'expo-location';
 import { supabase } from '../lib/supabase';
 import { formatElevation, formatSpeed, formatTravelDistance, getDistanceUnit } from '../utils/units';
@@ -685,13 +686,13 @@ const styles = StyleSheet.create({
   headerButtonActive: { backgroundColor: LIME },
   notificationDot: { position: 'absolute', width: 7, height: 7, borderRadius: 4, top: 7, right: 7, backgroundColor: '#FF766C' },
   tabs: { flexDirection: 'row', gap: 7, paddingHorizontal: 16, paddingBottom: 13 },
-  tab: { flex: 1, minHeight: 37, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, paddingHorizontal: 6, borderRadius: 12, backgroundColor: '#1A201A', borderWidth: 1, borderColor: '#303A30' },
+  tab: { flex: 1, minHeight: 37, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, paddingHorizontal: 6,   borderRadius: 12, backgroundColor: 'rgba(244,246,239,0.05)', borderWidth: 1, borderColor: 'rgba(244,246,239,0.12)' },
   tabActive: { backgroundColor: LIME, borderColor: LIME },
   tabText: { color: '#A9B5A0', fontFamily: 'Manrope-Bold', fontSize: 8 },
   tabTextActive: { color: '#101311' },
   feed: { flex: 1 },
   feedContent: { paddingHorizontal: 14, paddingBottom: 20 },
-  postCard: { backgroundColor: '#1A201A', borderRadius: 18, padding: 14, marginBottom: 13, borderWidth: 1, borderColor: '#303A30' },
+  postCard: { backgroundColor: 'rgba(244,246,239,0.05)', borderRadius: 18, padding: 14, marginBottom: 13, borderWidth: 1, borderColor: 'rgba(244,246,239,0.12)' },
   postHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 13 },
   avatar: { width: 39, height: 39, borderRadius: 20, backgroundColor: '#303A30', justifyContent: 'center', alignItems: 'center' },
   avatarText: { color: LIME, fontFamily: 'Syne', fontSize: 14 },
@@ -723,7 +724,7 @@ const styles = StyleSheet.create({
   emptyIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#20281C', justifyContent: 'center', alignItems: 'center', marginBottom: 13 },
   emptyTitle: { color: '#F4F6EF', fontFamily: 'Michroma', fontSize: 11, textAlign: 'center' },
   emptyBody: { maxWidth: 280, color: '#879181', fontFamily: 'Manrope', fontSize: 10, lineHeight: 16, textAlign: 'center', marginTop: 8 },
-  notificationCard: { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12, marginBottom: 8, borderRadius: 14, backgroundColor: '#1A201A', borderWidth: 1, borderColor: '#303A30' },
+  notificationCard: { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 12, marginBottom: 8, borderRadius: 14, backgroundColor: 'rgba(244,246,239,0.05)', borderWidth: 1, borderColor: 'rgba(244,246,239,0.12)' },
   notificationUnread: { borderColor: 'rgba(194,240,68,0.45)', backgroundColor: '#20281C' },
   notificationCopy: { flex: 1 },
   notificationText: { color: '#D4DDCF', fontFamily: 'Manrope', fontSize: 10, lineHeight: 15 },

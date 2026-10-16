@@ -349,7 +349,7 @@ export default function SprintScreen({ navigation }: Props) {
         subscriptionRef.current?.remove();
         subscriptionRef.current = await Location.watchPositionAsync({
           accuracy: Location.Accuracy.BestForNavigation,
-          distanceInterval: 1,
+          distanceInterval: 0,
           timeInterval: 1000,
           mayShowUserSettingsDialog: true,
         }, acceptLocation, (error) => {
@@ -393,7 +393,7 @@ export default function SprintScreen({ navigation }: Props) {
         }
         const point = lastFixRef.current;
         if (!point || point.accuracy == null || point.accuracy > GPS_START_ACCURACY_METERS ||
-          currentSpeedRef.current >= 1 || Date.now() - point.timestamp > 5000) {
+          currentSpeedRef.current >= 1 || Date.now() - point.timestamp > 15000) {
           abortRef.current('GPS accuracy or stationary requirements changed during the countdown.');
           return;
         }
@@ -1050,7 +1050,7 @@ const styles = StyleSheet.create({
   gpsStatusTitle: { fontFamily: 'Manrope-Bold', color: '#F4F6EF', fontSize: 8, letterSpacing: 0.8 },
   gpsStatusHint: { fontFamily: 'Manrope', color: MUTED, fontSize: 8, marginTop: 4 },
   gpsAccuracy: { fontFamily: 'Manrope-Bold', color: HOTLAP_LIME, fontSize: 9 },
-  safetyCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, padding: 12, backgroundColor: '#171D17', borderRadius: 12, marginBottom: 14 },
+  safetyCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, padding: 12, backgroundColor: 'rgba(244,246,239,0.05)', borderRadius: 12, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(244,246,239,0.1)' },
   safetyCopy: { flex: 1, fontFamily: 'Manrope', color: MUTED, fontSize: 9, lineHeight: 14 },
   primaryButton: { minHeight: 53, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 9, paddingHorizontal: 14, backgroundColor: HOTLAP_LIME, borderRadius: 14 },
   primaryButtonText: { fontFamily: 'Manrope-Bold', color: BACKGROUND, fontSize: 11, letterSpacing: 1.1 },
