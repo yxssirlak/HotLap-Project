@@ -311,16 +311,6 @@ export default function MapScreen() {
     setBusy(true);
     try {
       if (!(await requestLocationPermission())) return;
-      const background = await Location.getBackgroundPermissionsAsync();
-      if (!background.granted) {
-        const result = await Location.requestBackgroundPermissionsAsync();
-        if (!result.granted) {
-          Alert.alert(
-            'Background location recommended',
-            'Without "Always" location access, the drive stops recording when you leave the app or lock your screen.',
-          );
-        }
-      }
 
       if (!active || pointsRef.current.length === 0) {
         const firstFix = await Location.getCurrentPositionAsync({
