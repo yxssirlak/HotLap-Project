@@ -14,7 +14,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { Region } from 'react-native-maps';
 import { MapView, Polyline } from '../components/NativeMaps';
@@ -588,6 +588,8 @@ export default function CommunityScreen() {
       </ScrollView>
 
       <Modal visible={Boolean(selectedPost)} animationType="slide" onRequestClose={() => setSelectedPost(null)}>
+        <SafeAreaProvider>
+        <SafeAreaView style={styles.modalContainer} edges={['top']}>
         <KeyboardAvoidingView style={styles.modalContainer} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalHeader}>
             <Pressable style={styles.headerButton} onPress={() => setSelectedPost(null)} accessibilityLabel="Close comments">
@@ -628,6 +630,8 @@ export default function CommunityScreen() {
             </Pressable>
           </View>
         </KeyboardAvoidingView>
+        </SafeAreaView>
+        </SafeAreaProvider>
       </Modal>
 
       <Modal visible={managementMode != null} transparent animationType="fade" onRequestClose={() => setManagementMode(null)}>

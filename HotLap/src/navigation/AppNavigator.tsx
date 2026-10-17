@@ -21,6 +21,7 @@ import RecordScreen from '../screens/RecordScreen';
 import MapScreen from '../screens/MapScreen';
 import SprintScreen from '../screens/SprintScreen';
 import ShareActivityScreen from '../screens/ShareActivityScreen';
+import DriveDetailScreen from '../screens/DriveDetailScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import { RootStackParamList } from './types';
@@ -218,6 +219,7 @@ export default function AppNavigator() {
         <Stack.Screen name="MainTabs" component={TabNavigator} />
         <Stack.Screen name="Sprint" component={SprintScreen} />
         <Stack.Screen name="ShareActivity" component={ShareActivityScreen} />
+        <Stack.Screen name="DriveDetail" component={DriveDetailScreen} />
         
         {/* Dit is het nieuwe scherm dat OVER je tabs heen schuift */}
         <Stack.Screen name="EditProfileScreen" component={EditProfileScreen} />

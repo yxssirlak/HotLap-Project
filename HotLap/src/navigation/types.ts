@@ -12,6 +12,7 @@ export type Profile = {
 export type RootStackParamList = {
   MainTabs: undefined;
   Sprint: undefined;
+  DriveDetail: { driveId: string };
   ShareActivity: {
     activity: {
       type: 'drive' | 'sprint';

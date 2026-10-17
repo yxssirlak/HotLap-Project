@@ -10,6 +10,8 @@ create table if not exists public.drive_sessions (
   created_at timestamptz not null default now()
 );
 
+alter table public.drive_sessions add column if not exists name text;
+
 create index if not exists drive_sessions_user_created_idx
   on public.drive_sessions (user_id, created_at desc);
 

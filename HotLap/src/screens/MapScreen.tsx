@@ -4,11 +4,13 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Modal,
   Platform,
   Pressable,
   Share,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import type MapViewType from 'react-native-maps';
@@ -131,6 +133,8 @@ export default function MapScreen() {
   const [mapReady, setMapReady] = useState(false);
   const [driveSaved, setDriveSaved] = useState<boolean | null>(null);
   const [savingDrive, setSavingDrive] = useState(false);
+  const [namingDrive, setNamingDrive] = useState(false);
+  const [driveName, setDriveName] = useState('');
   const [mapType, setMapType] = useState<MapType>('standard');
   const [showTraffic, setShowTraffic] = useState(false);
   const [showPlaces, setShowPlaces] = useState(true);
@@ -402,6 +406,7 @@ export default function MapScreen() {
         duration_seconds: duration,
         distance_meters: Number(distance.toFixed(2)),
         average_speed_kmh: duration > 0 ? Number(((distance / duration) * 3.6).toFixed(2)) : 0,
+        name: driveName.trim() || null,
         track,
       });
       if (error) throw error;
@@ -415,21 +420,33 @@ export default function MapScreen() {
     }
   }
 
-  async function finishDrive() {
+  function finishDrive() {
     void stopDriveTracking();
     setActive(false);
     setPaused(false);
     setStartedAt(null);
+    setDriveSaved(null);
+    setDriveName(`Drive ${new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`);
+    setNamingDrive(true);
+  }
+
+  async function confirmSaveDrive(publish: boolean) {
     const saveError = await saveDrive();
-    Alert.alert(
-      'Drive complete',
-      `${formatTravelDistance(distanceMeters, distanceUnit)} · ${formatDuration(elapsedSeconds)} · ${pointsRef.current.length} GPS fixes${saveError ? `\n\nCould not save to your drive log: ${saveError}` : '\n\nSaved to your private HotLap drive log.'}`,
-      [
-        { text: 'Close', style: 'cancel' },
-        ...(saveError ? [{ text: 'Retry save', onPress: () => void retrySaveDrive() }] : []),
-        { text: 'Share drive', onPress: () => void shareDrive() },
-      ],
-    );
+    if (saveError) {
+      Alert.alert('Could not save drive', saveError);
+      return;
+    }
+    setNamingDrive(false);
+    if (publish) shareDriveToCommunity();
+  }
+
+  function discardDrive() {
+    setNamingDrive(false);
+    pointsRef.current = [];
+    setPoints([]);
+    setDistanceMeters(0);
+    setElapsedSeconds(0);
+    setDriveSaved(null);
   }
 
   async function retrySaveDrive() {
@@ -677,7 +694,7 @@ export default function MapScreen() {
                     ? <ActivityIndicator color={HOTLAP_LIME} />
                     : <Ionicons name={paused ? 'play' : 'pause'} size={21} color={HOTLAP_LIME} />}
                 </Pressable>
-                <Pressable style={styles.stopButton} onPress={() => void finishDrive()}>
+                <Pressable style={styles.stopButton} onPress={() => finishDrive()}>
                   <Ionicons name="stop" size={17} color="#101311" />
                   <Text style={styles.stopButtonText}>FINISH DRIVE</Text>
                 </Pressable>
@@ -745,11 +762,51 @@ export default function MapScreen() {
           )}
         </BlurView>
       </View>
+
+      <Modal visible={namingDrive} transparent animationType="fade" onRequestClose={() => setNamingDrive(false)}>
+        <View style={styles.nameBackdrop}>
+          <View style={styles.nameCard}>
+            <Text style={styles.nameTitle}>Drive complete</Text>
+            <Text style={styles.nameSummary}>
+              {formatTravelDistance(distanceMeters, distanceUnit)} · {formatDuration(elapsedSeconds)}
+            </Text>
+            <TextInput
+              style={styles.nameInput}
+              value={driveName}
+              onChangeText={setDriveName}
+              placeholder="Name your drive"
+              placeholderTextColor="#687263"
+              maxLength={60}
+              autoFocus
+            />
+            <Pressable style={styles.nameSave} onPress={() => void confirmSaveDrive(false)} disabled={savingDrive}>
+              {savingDrive ? <ActivityIndicator color="#101311" /> : <Text style={styles.nameSaveText}>SAVE DRIVE</Text>}
+            </Pressable>
+            <Pressable style={styles.namePublish} onPress={() => void confirmSaveDrive(true)} disabled={savingDrive}>
+              <Text style={styles.namePublishText}>SAVE & PUBLISH</Text>
+            </Pressable>
+            <Pressable onPress={discardDrive} disabled={savingDrive} style={styles.nameDiscard}>
+              <Text style={styles.nameDiscardText}>Discard drive</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  nameBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 24 },
+  nameCard: { backgroundColor: '#181D18', borderRadius: 22, padding: 20, borderWidth: 1, borderColor: '#303A30' },
+  nameTitle: { color: '#F4F6EF', fontSize: 20, fontWeight: '800' },
+  nameSummary: { color: '#A9B5A0', marginTop: 4, marginBottom: 14 },
+  nameInput: { height: 50, borderRadius: 14, borderWidth: 1, borderColor: '#303A30', backgroundColor: '#101311', color: '#F4F6EF', paddingHorizontal: 14, marginBottom: 14 },
+  nameSave: { height: 50, borderRadius: 14, backgroundColor: HOTLAP_LIME, alignItems: 'center', justifyContent: 'center' },
+  nameSaveText: { color: '#101311', fontWeight: '900', letterSpacing: 1 },
+  namePublish: { height: 50, borderRadius: 14, borderWidth: 1, borderColor: HOTLAP_LIME, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
+  namePublishText: { color: HOTLAP_LIME, fontWeight: '900', letterSpacing: 1 },
+  nameDiscard: { alignItems: 'center', paddingTop: 16 },
+  nameDiscardText: { color: '#879181' },
   container: { flex: 1, backgroundColor: '#101311' },
   overlay: { ...StyleSheet.absoluteFill, justifyContent: 'space-between', paddingHorizontal: 18, paddingBottom: 104 },
   header: { minHeight: 57, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 13, borderRadius: 17, overflow: 'hidden', backgroundColor: 'rgba(16,19,17,0.56)', borderWidth: 1, borderColor: 'rgba(244,246,239,0.18)' },

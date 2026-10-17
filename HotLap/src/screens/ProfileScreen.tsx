@@ -39,6 +39,7 @@ type Drive = {
   created_at?: string | null;
   duration_seconds?: number | null;
   distance_meters?: number | string | null;
+  name?: string | null;
 };
 
 type ProfileScreenProps = {
@@ -167,7 +168,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
         supabase.from('vehicles').select('*').eq('owner_id', user.id).limit(1).maybeSingle(),
         supabase
           .from('drive_sessions')
-          .select('id, started_at, created_at, duration_seconds, distance_meters', { count: 'exact' })
+          .select('id, name, started_at, created_at, duration_seconds, distance_meters', { count: 'exact' })
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(5),
@@ -447,12 +448,17 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
               <Ionicons name="trail-sign-outline" size={25} color={ACCENT} />
             </View>
             {drives.length ? drives.map((drive, index) => {
-              const driveName = `Drive ${driveCount - index}`;
+              const driveName = drive.name || `Drive ${driveCount - index}`;
               const distanceMeters = drive.distance_meters == null ? null : Number(drive.distance_meters);
               const hasDistance = distanceMeters !== null && Number.isFinite(distanceMeters);
               const duration = formatDuration(drive.duration_seconds);
               return (
-                <View key={drive.id ?? `${driveName}-${index}`} style={styles.driveCard}>
+                <Pressable
+                  key={drive.id ?? `${driveName}-${index}`}
+                  style={styles.driveCard}
+                  disabled={drive.id == null}
+                  onPress={() => navigation.navigate('DriveDetail', { driveId: String(drive.id) })}
+                >
                   <View style={styles.driveIcon}><Ionicons name="navigate-outline" size={19} color={ACCENT} /></View>
                   <View style={styles.driveCopy}>
                     <Text style={styles.driveName} numberOfLines={1}>{driveName}</Text>
@@ -463,7 +469,7 @@ export default function ProfileScreen({ navigation }: ProfileScreenProps) {
                   {hasDistance && (
                     <Text style={styles.driveDistance}>{formatTravelDistance(distanceMeters, DISTANCE_UNIT, 1)}</Text>
                   )}
-                </View>
+                </Pressable>
               );
             }) : (
               <View style={styles.emptyCard}>
